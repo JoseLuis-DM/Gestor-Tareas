@@ -81,6 +81,13 @@
 			<version>1.5.5.Final</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- Springdoc OpenAPI para Spring Boot -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.1.0</version> <!-- usa la versión más reciente -->
+		</dependency>
+
 	</dependencies>
 
 	<build>
