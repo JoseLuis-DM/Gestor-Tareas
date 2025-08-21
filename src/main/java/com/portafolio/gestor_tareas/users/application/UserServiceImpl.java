@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
 
         BeanUtils.copyProperties(user, updateUser, "role", "id", "password");
 
-        return userRepository.save(user);
+        return userRepository.save(updateUser);
     }
 
     @Override
