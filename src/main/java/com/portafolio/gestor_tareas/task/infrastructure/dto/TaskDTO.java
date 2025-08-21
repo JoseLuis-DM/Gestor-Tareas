@@ -1,6 +1,6 @@
-package com.portafolio.gestor_tareas.tasks.infrastructure.dto;
+package com.portafolio.gestor_tareas.task.infrastructure.dto;
 
-public record TasksDTO(
+public record TaskDTO(
         Long id,
         String title,
         String description,

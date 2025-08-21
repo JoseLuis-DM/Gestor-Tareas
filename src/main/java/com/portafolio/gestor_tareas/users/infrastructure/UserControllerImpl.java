@@ -71,7 +71,7 @@ public class UserControllerImpl implements UserController{
     public ResponseEntity<List<UserDTO>> findAll() {
 
         List<UserDTO> userDTOS = userService.findAll().stream()
-                .map(userMapper::userToUserDTO).toList() ;
+                .map(userMapper::userToUserDTO).toList();
 
         return ResponseEntity.ok(userDTOS);
     }

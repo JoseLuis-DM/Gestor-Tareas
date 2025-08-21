@@ -1,6 +1,6 @@
 package com.portafolio.gestor_tareas.users.infrastructure.dto;
 
-import com.portafolio.gestor_tareas.tasks.infrastructure.entity.TasksEntity;
+import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -24,5 +24,5 @@ public class UserDTO {
     private String password;
     @Enumerated(EnumType.STRING)
     private Role role;
-    private List<TasksEntity> task;
+    private List<TaskEntity> task;
 }

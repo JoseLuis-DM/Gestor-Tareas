@@ -1,6 +1,6 @@
 package com.portafolio.gestor_tareas.users.domain;
 
-import com.portafolio.gestor_tareas.tasks.infrastructure.entity.TasksEntity;
+import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import lombok.Builder;
 import lombok.Data;
 
@@ -16,5 +16,5 @@ public class User {
     private String email;
     private String password;
     private Role role;
-    private List<TasksEntity> task;
+    private List<TaskEntity> task;
 }
