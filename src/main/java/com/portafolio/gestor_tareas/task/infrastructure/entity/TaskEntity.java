@@ -32,7 +32,6 @@ public class TaskEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Método que se ejecuta antes de insertar ek registro
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
