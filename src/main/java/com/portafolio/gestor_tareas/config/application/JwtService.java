@@ -16,7 +16,7 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "2zqFv9g4P8u0R2f1K6v9U3m2N8o4X7s5J1L0d3T6A9E1B5H8Q0W3C7R9V2Y4Z6X8";
+    private static final String SECRET_KEY = System.getenv("JWT_SECRET_KEY");
     private static final long TOKEN_EXPIRATION = 1000 * 60 * 60 * 24; // 1 day
     private static final long REFRESH_WINDOW = 1000 * 60 * 60 * 24 * 7; // 7 days
 
