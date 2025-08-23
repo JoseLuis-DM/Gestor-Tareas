@@ -1,9 +1,9 @@
 package com.portafolio.gestor_tareas.users.infrastructure.mapper;
 
+import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
-import org.springframework.web.bind.annotation.Mapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingConstants;
 

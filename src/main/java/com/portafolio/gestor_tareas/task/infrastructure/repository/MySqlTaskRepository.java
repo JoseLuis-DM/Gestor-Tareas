@@ -38,7 +38,7 @@ public class MySqlTaskRepository implements TaskRepository {
     }
 
     @Override
-    public void delete(Long id) {
+    public void deleteById(Long id) {
         springTaskRepository.deleteById(id);
     }
 }
