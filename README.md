@@ -13,7 +13,7 @@ Este proyecto es un **Gestor de Tareas** desarrollado con **Spring Boot 3**, **S
 - Maven
 
 ---
-
+        
 ## 📌 Funcionalidades
 ✅ Registro de usuarios  
 ✅ Login con autenticación JWT  
