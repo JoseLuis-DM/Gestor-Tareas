@@ -43,6 +43,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/actuator/**"
                         ).permitAll()
+                        .requestMatchers("api/users/**").hasRole("ADMIN")
+                        .requestMatchers("api/tasks/**").hasAnyRole("USER", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
