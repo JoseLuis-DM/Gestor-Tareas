@@ -71,13 +71,13 @@ public class RefreshTokenController {
     @Operation(summary = "Sign out of the current device",
             description = "Deletes only the current refresh token (logout on a device).")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Logout successful "),
+            @ApiResponse(responseCode = "204", description = "Logout successful"),
             @ApiResponse(responseCode = "400", description = "Invalid refresh token")
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.refreshToken);
-        return ResponseEntity.ok(Map.of("message", "Logout successful (single device)"));
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Sign out on all devices",
@@ -89,6 +89,6 @@ public class RefreshTokenController {
     @PostMapping("/logout-all")
     public ResponseEntity<?> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {
         refreshTokenService.deleteByUserId(user.getUser().getId());
-        return ResponseEntity.ok(Map.of("message", "Logged out from all devices"));
+        return ResponseEntity.noContent().build();
     }
 }
