@@ -6,6 +6,9 @@ import com.portafolio.gestor_tareas.users.domain.UserService;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,7 +33,12 @@ public class UserControllerImpl implements UserController{
     private final UserService userService;
     private final UserMapper userMapper;
 
-    @Operation(summary = "Register a new user", description = "Creates a new user in the system")
+    @Operation(summary = "Register a new user",
+            description = "Creates a new user in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "User created successfully"),
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+    })
     @PostMapping
     public ResponseEntity<UserDTO> register(@Valid @RequestBody UserDTO userDTO) {
         User user = userMapper.userDTOToUser(userDTO);
@@ -42,7 +50,14 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.status(HttpStatus.CREATED).body(registerDTO);
     }
 
-    @Operation(summary = "Update an existing user", description = "Updates user details")
+    @Operation(summary = "Update an existing user",
+            description = "Updates user details")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User updated successfully"),
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "NotFound")
+    })
     @PutMapping
     public ResponseEntity<UserDTO> update(@RequestBody UserDTO userDTO) {
         User user = userMapper.userDTOToUser(userDTO);
@@ -54,7 +69,14 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.ok(updateDTO);
     }
 
-    @Operation(summary = "Find user by ID", description = "Retrieve a user by their ID")
+    @Operation(summary = "Find user by ID",
+            description = "Retrieve a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User found"),
+            @ApiResponse(responseCode = "204", description = "No content"),
+            @ApiResponse(responseCode = "403", ref = "Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "NotFound")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> findById(@PathVariable Long id) throws NotFoundException {
 
@@ -65,7 +87,14 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.ok(userDTO);
     }
 
-    @Operation(summary = "List all users", description = "Returns a list of all users (admin only)")
+    @Operation(summary = "List all users",
+            description = "Returns a list of all users (admin only)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Users found"),
+            @ApiResponse(responseCode = "204", description = "No content"),
+            @ApiResponse(responseCode = "403", ref = "Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "NotFound")
+    })
     @GetMapping
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<UserDTO>> findAll() {
@@ -76,7 +105,13 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.ok(userDTOS);
     }
 
-    @Operation(summary = "Delete user by id", description = "Deletes a user by their ID")
+    @Operation(summary = "Delete user by id",
+            description = "Deletes a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User deleted"),
+            @ApiResponse(responseCode = "403", ref = "Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "NotFound")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
 

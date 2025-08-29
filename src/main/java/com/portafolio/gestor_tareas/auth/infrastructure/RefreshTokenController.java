@@ -55,7 +55,7 @@ public class RefreshTokenController {
             description = "Generates a new access token from a valid refresh token.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Token successfully renewed"),
-            @ApiResponse(responseCode = "400", description = "Refresh token invalid or expired")
+            @ApiResponse(responseCode = "400", ref = "BadRequest")
     })
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
@@ -72,7 +72,7 @@ public class RefreshTokenController {
             description = "Deletes only the current refresh token (logout on a device).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Logout successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+            @ApiResponse(responseCode = "400", ref = "BadRequest")
     })
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest request) {
@@ -84,7 +84,7 @@ public class RefreshTokenController {
             description = "Deletes all refresh tokens associated with the user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successful global logout"),
-            @ApiResponse(responseCode = "404", description = "User not found")
+            @ApiResponse(responseCode = "404", ref = "User not found")
     })
     @PostMapping("/logout-all")
     public ResponseEntity<?> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {

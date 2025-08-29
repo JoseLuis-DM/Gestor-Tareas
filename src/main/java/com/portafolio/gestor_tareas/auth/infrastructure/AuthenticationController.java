@@ -29,7 +29,7 @@ public class AuthenticationController {
             description = "Create a new user in the system with the data provided.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User successfully registered"),
-            @ApiResponse(responseCode = "400", description = "Invalid data or user already exists", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
     @PostMapping("/register")
     public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
@@ -42,7 +42,7 @@ public class AuthenticationController {
             description = "Generates a JWT token for the user if the credentials are correct.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User successfully registered", content = @Content),
-            @ApiResponse(responseCode = "401", description = "Incorrect credentials", content = @Content)
+            @ApiResponse(responseCode = "401", ref = "Unauthorized", content = @Content)
     })
     @PostMapping("/authenticate")
     public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
