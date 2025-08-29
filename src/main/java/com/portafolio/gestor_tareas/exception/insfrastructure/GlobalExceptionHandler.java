@@ -6,12 +6,13 @@ import com.portafolio.gestor_tareas.exception.domain.ForbiddenException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 
-@RestControllerAdvice
+//@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     // NotFoundException → HTTP 404

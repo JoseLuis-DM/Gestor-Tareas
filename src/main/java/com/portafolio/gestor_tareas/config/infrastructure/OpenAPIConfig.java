@@ -21,65 +21,64 @@ public class OpenAPIConfig {
                 .info(new Info()
                         .title("Gestor de tareas API")
                         .version("1.0")
-                        .description("API para gestionar usuarios y tareas"));
-        /*
+                        .description("API para gestionar usuarios y tareas"))
                 .components(new Components()
-                        // Not found - 404
-                        .addResponses("NotFound",
-                                new ApiResponse()
-                                        .description("Resource not found")
-                                        .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(Map.of(
-                                                        "status",404,
-                                                        "message","Task with ID 5 not found",
-                                                        "path","/api/tasks/5"
+                                // Not found - 404
+                                .addResponses("NotFound",
+                                        new ApiResponse()
+                                                .description("Resource not found")
+                                                .content(new Content().addMediaType("application/json",
+                                                        new MediaType().example(new ApiError(
+                                                                404,
+                                                                "Task with ID 5 not found",
+                                                                "/api/tasks/5"
+                                                        ))
                                                 ))
-                                        ))
-                        // Bad Request - 400
-                        ).addResponses("BadRequest",
-                                new ApiResponse()
-                                        .description("Bad request")
-                                        .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(Map.of(
-                                                        "status",400,
-                                                        "message","Invalid input data",
-                                                        "path","/api/tasks"
+                                        // Bad Request - 400
+                                ).addResponses("BadRequest",
+                                        new ApiResponse()
+                                                .description("Bad request")
+                                                .content(new Content().addMediaType("application/json",
+                                                        new MediaType().example(new ApiError(
+                                                                400,
+                                                                "Invalid input data",
+                                                                "/api/tasks"
+                                                        ))
                                                 ))
-                                        ))
-                        // Unauthorized - 401
-                        ).addResponses("Unauthorized",
-                                new ApiResponse()
-                                        .description("Unauthorized access")
-                                        .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(Map.of(
-                                                        "status", 401,
-                                                        "message", "Invalid or missing token",
-                                                        "path", "/api/tasks"
+                                        // Unauthorized - 401
+                                ).addResponses("Unauthorized",
+                                        new ApiResponse()
+                                                .description("Unauthorized access")
+                                                .content(new Content().addMediaType("application/json",
+                                                        new MediaType().example(new ApiError(
+                                                                401,
+                                                                "Invalid or missing token",
+                                                                "/api/tasks"
+                                                        ))
                                                 ))
-                                        ))
-                        // Forbidden - 403
-                        ).addResponses("Forbidden",
-                                new ApiResponse()
-                                        .description("Forbidden - user lacks permissions")
-                                        .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(Map.of(
-                                                        "status", 403,
-                                                        "message", "You dont permission to access this resources",
-                                                        "path", "/api/admins/tasks"
+                                        // Forbidden - 403
+                                ).addResponses("Forbidden",
+                                        new ApiResponse()
+                                                .description("Forbidden - user lacks permissions")
+                                                .content(new Content().addMediaType("application/json",
+                                                        new MediaType().example(new ApiError(
+                                                                403,
+                                                                "You dont permission to access this resources",
+                                                                "/api/admins/tasks"
+                                                        ))
                                                 ))
-                                        ))
-                        // Internal Server Error - 500
-                        ).addResponses("InternalError",
-                                new ApiResponse()
-                                        .description("Unexpected error")
-                                        .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(Map.of(
-                                                        "status", 500,
-                                                        "message", "An unexpected error occurred. Please try again later",
-                                                        "path", "/api/tasks"
+                                        // Internal Server Error - 500
+                                ).addResponses("InternalError",
+                                        new ApiResponse()
+                                                .description("Unexpected error")
+                                                .content(new Content().addMediaType("application/json",
+                                                        new MediaType().example(new ApiError(
+                                                                500,
+                                                                "An unexpected error occurred. Please try again later",
+                                                                "/api/tasks"
+                                                        ))
                                                 ))
-                                        ))
-                        )
-                );*/
+                                )
+                );
     }
 }
