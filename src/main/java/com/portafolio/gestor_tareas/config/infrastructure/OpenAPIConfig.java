@@ -10,6 +10,8 @@ import io.swagger.v3.oas.models.responses.ApiResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+
 @Configuration
 public class OpenAPIConfig {
 
@@ -19,17 +21,18 @@ public class OpenAPIConfig {
                 .info(new Info()
                         .title("Gestor de tareas API")
                         .version("1.0")
-                        .description("API para gestionar usuarios y tareas"))
+                        .description("API para gestionar usuarios y tareas"));
+        /*
                 .components(new Components()
                         // Not found - 404
                         .addResponses("NotFound",
                                 new ApiResponse()
                                         .description("Resource not found")
                                         .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(new ApiError(
-                                                        404,
-                                                        "Task with ID 5 not found",
-                                                        "/api/tasks/5"
+                                                new MediaType().example(Map.of(
+                                                        "status",404,
+                                                        "message","Task with ID 5 not found",
+                                                        "path","/api/tasks/5"
                                                 ))
                                         ))
                         // Bad Request - 400
@@ -37,10 +40,10 @@ public class OpenAPIConfig {
                                 new ApiResponse()
                                         .description("Bad request")
                                         .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(new ApiError(
-                                                        400,
-                                                        "Invalid input data",
-                                                        "/api/tasks"
+                                                new MediaType().example(Map.of(
+                                                        "status",400,
+                                                        "message","Invalid input data",
+                                                        "path","/api/tasks"
                                                 ))
                                         ))
                         // Unauthorized - 401
@@ -48,10 +51,10 @@ public class OpenAPIConfig {
                                 new ApiResponse()
                                         .description("Unauthorized access")
                                         .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(new ApiError(
-                                                        401,
-                                                        "Invalid or missing token",
-                                                        "/api/tasks"
+                                                new MediaType().example(Map.of(
+                                                        "status", 401,
+                                                        "message", "Invalid or missing token",
+                                                        "path", "/api/tasks"
                                                 ))
                                         ))
                         // Forbidden - 403
@@ -59,10 +62,10 @@ public class OpenAPIConfig {
                                 new ApiResponse()
                                         .description("Forbidden - user lacks permissions")
                                         .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(new ApiError(
-                                                        403,
-                                                        "You dont permission to access this resources",
-                                                        "/api/admins/tasks"
+                                                new MediaType().example(Map.of(
+                                                        "status", 403,
+                                                        "message", "You dont permission to access this resources",
+                                                        "path", "/api/admins/tasks"
                                                 ))
                                         ))
                         // Internal Server Error - 500
@@ -70,13 +73,13 @@ public class OpenAPIConfig {
                                 new ApiResponse()
                                         .description("Unexpected error")
                                         .content(new Content().addMediaType("application/json",
-                                                new MediaType().example(new ApiError(
-                                                        500,
-                                                        "An unexpected error occurred. Please try again later",
-                                                        "/api/tasks"
+                                                new MediaType().example(Map.of(
+                                                        "status", 500,
+                                                        "message", "An unexpected error occurred. Please try again later",
+                                                        "path", "/api/tasks"
                                                 ))
                                         ))
                         )
-                );
+                );*/
     }
 }
