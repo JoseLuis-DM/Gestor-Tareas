@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.exception.domain;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -7,6 +8,7 @@ import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
 @AllArgsConstructor
 public class ApiError {
 
@@ -15,17 +17,4 @@ public class ApiError {
     private String error;
     private String path;
     private List<String> errors;
-
-    public ApiError(int status, String error, String path, LocalDateTime timestamp) {
-        this.status = status;
-        this.error = error;
-        this.path = path;
-        this.timestamp = timestamp;
-    }
-
-    public ApiError(int status, String error, String path) {
-        this.status = status;
-        this.error = error;
-        this.path = path;
-    }
 }
