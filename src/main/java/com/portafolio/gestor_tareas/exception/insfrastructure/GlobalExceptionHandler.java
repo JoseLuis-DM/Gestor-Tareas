@@ -1,18 +1,17 @@
 package com.portafolio.gestor_tareas.exception.insfrastructure;
 
-import com.portafolio.gestor_tareas.exception.domain.ApiError;
-import com.portafolio.gestor_tareas.exception.domain.BadRequestException;
-import com.portafolio.gestor_tareas.exception.domain.ForbiddenException;
-import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
+import com.portafolio.gestor_tareas.exception.domain.*;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Hidden
 @RestControllerAdvice
@@ -32,8 +31,15 @@ public class GlobalExceptionHandler {
     }
 
     // BadRequest -> HTTP 400
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiError> handleValidation(BadRequestException e, HttpServletRequest request) {
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
+
+        List<String> errors = e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+                .toList();
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
@@ -55,6 +61,19 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
+    }
+
+    // Conflict -> HTTP 409
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException e, HttpServletRequest request) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
     }
 
     // Exception -> 500

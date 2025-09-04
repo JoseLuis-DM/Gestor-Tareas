@@ -1,6 +1,7 @@
 package com.portafolio.gestor_tareas.config.infrastructure.filter;
 
 import com.portafolio.gestor_tareas.config.application.JwtService;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -83,6 +87,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 response.setHeader("Authorization", "Bearer " + newToken);
             }
 
+            final Claims claims = jwtService.extractAllClaims(jwt);
+            final List<?> rolesRaw = claims.get("roles", List.class);
+            final List<SimpleGrantedAuthority> authorities = rolesRaw.stream()
+                    .map(role -> new SimpleGrantedAuthority(role.toString()))
+                    .toList();
+
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,
@@ -98,6 +108,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             log.error("Error processing JWT: {}", e.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, e);
+            return;
         }
 
         filterChain.doFilter(request, response);
