@@ -2,14 +2,12 @@ spring:
   application:
     name: gestor-tareas
   datasource:
-    url: jdbc:postgresql://localhost:5432/gestorbd
-    username: postgres
-    password: pasword
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://localhost:3306/gestorbd
+    username: root
+    password: teti1402
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
+    database: mysql
+    database-platform: org.hibernate.dialect.MySQL8Dialect

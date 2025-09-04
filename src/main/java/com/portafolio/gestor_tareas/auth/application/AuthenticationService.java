@@ -2,6 +2,7 @@ package com.portafolio.gestor_tareas.auth.application;
 
 import com.portafolio.gestor_tareas.auth.infrastructure.AuthenticationRequest;
 import com.portafolio.gestor_tareas.auth.infrastructure.AuthenticationResponse;
+import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
 import com.portafolio.gestor_tareas.config.application.JwtService;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.domain.Role;
@@ -29,12 +30,15 @@ public class AuthenticationService {
 
     public AuthenticationResponse register(User user) {
 
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) throw new NotFoundException("error");
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("User already exists");
+        }
 
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
 
         User saved = userRepository.save(user);
+
         UserEntity userEntity = userMapper.userToUserEntity(saved);
 
         String jwtToken = jwtService.generateToken(userEntity);
@@ -63,5 +67,17 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .token(jwtToken)
                 .build();
+    }
+
+    public User registerAdmin(RegisterRequest request) {
+        User user = userMapper.registerRequestToUser(request);
+        user.setRole(Role.ADMIN);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
+    public String generateToken(User user) {
+        UserEntity userEntity = userMapper.userToUserEntity(user);
+        return jwtService.generateToken(userEntity);
     }
 }

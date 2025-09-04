@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("api/users")
+@RequestMapping("/api/users")
 @SecurityRequirement(name = "Bearer Authentication")
 @Tag(name = "Users", description = "The User API. Contains all operations on users")
 @RequiredArgsConstructor
@@ -59,7 +59,7 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @PutMapping
-    public ResponseEntity<UserDTO> update(@RequestBody UserDTO userDTO) {
+    public ResponseEntity<UserDTO> update(@Valid @RequestBody UserDTO userDTO) {
         User user = userMapper.userDTOToUser(userDTO);
 
         User update = userService.update(user);
@@ -96,7 +96,7 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<UserDTO>> findAll() {
 
         List<UserDTO> userDTOS = userService.findAll().stream()

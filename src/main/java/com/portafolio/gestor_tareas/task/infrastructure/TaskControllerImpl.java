@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/task")
+@RequestMapping("/api/task")
 @SecurityRequirement(name = "Bearer Authentication")
 @Tag(name = "Task", description = "The Task API. Contains all operation on tasks")
 @RequiredArgsConstructor
@@ -95,7 +95,6 @@ public class TaskControllerImpl implements TaskController{
     })
     @GetMapping
     public ResponseEntity<List<TaskDTO>> findAll() {
-
         List<TaskDTO> taskDTO = taskService.findAll()
                 .stream().map(taskMapper::taskToTaskDTO).toList();
 
