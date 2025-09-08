@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.task.infrastructure;
 
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import org.springframework.http.ResponseEntity;
 
@@ -7,13 +8,13 @@ import java.util.List;
 
 public interface TaskController {
 
-    ResponseEntity<TaskDTO> register(TaskDTO taskDTO);
+    ResponseEntity<ApiResponseDTO<TaskDTO>> register(TaskDTO taskDTO);
 
-    ResponseEntity<TaskDTO> update(TaskDTO taskDTO);
+    ResponseEntity<ApiResponseDTO<TaskDTO>> update(TaskDTO taskDTO);
 
-    ResponseEntity<TaskDTO> findById(Long id);
+    ResponseEntity<ApiResponseDTO<TaskDTO>> findById(Long id);
 
-    ResponseEntity<List<TaskDTO>> findAll();
+    ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll();
 
-    ResponseEntity<Void> deleteById(Long id);
+    ResponseEntity<ApiResponseDTO<Void>> deleteById(Long id);
 }

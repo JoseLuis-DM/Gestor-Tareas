@@ -1,6 +1,5 @@
-package com.portafolio.gestor_tareas.exception.domain;
+package com.portafolio.gestor_tareas.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import java.time.LocalDateTime;

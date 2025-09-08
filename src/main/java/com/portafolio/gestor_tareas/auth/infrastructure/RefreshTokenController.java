@@ -1,7 +1,10 @@
 package com.portafolio.gestor_tareas.auth.infrastructure;
 
 import com.portafolio.gestor_tareas.auth.application.RefreshTokenService;
+import com.portafolio.gestor_tareas.auth.domain.RefreshToken;
 import com.portafolio.gestor_tareas.config.application.JwtService;
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
+import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -58,13 +62,16 @@ public class RefreshTokenController {
             @ApiResponse(responseCode = "400", ref = "BadRequest")
     })
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
 
         try {
             String newAccessToken = refreshTokenService.generateNewAccessToken(request.refreshToken);
-            return ResponseEntity.ok(new RefreshTokenResponse(newAccessToken, request.refreshToken));
+
+            RefreshTokenResponse response = new RefreshTokenResponse(newAccessToken, request.refreshToken);
+
+            return ApiResponseFactory.success(response, "Token successfully renewed");
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ApiResponseFactory.error(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -75,9 +82,9 @@ public class RefreshTokenController {
             @ApiResponse(responseCode = "400", ref = "BadRequest")
     })
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logout(@RequestBody RefreshTokenRequest request) {
         refreshTokenService.deleteByToken(request.refreshToken);
-        return ResponseEntity.noContent().build();
+        return ApiResponseFactory.success(null, "Logout successful");
     }
 
     @Operation(summary = "Sign out on all devices",
@@ -87,8 +94,8 @@ public class RefreshTokenController {
             @ApiResponse(responseCode = "404", ref = "User not found")
     })
     @PostMapping("/logout-all")
-    public ResponseEntity<?> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {
         refreshTokenService.deleteByUserId(user.getUser().getId());
-        return ResponseEntity.noContent().build();
+        return ApiResponseFactory.success(null, "Successful global logout");
     }
 }
