@@ -27,6 +27,7 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserMapper userMapper;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthenticationResponse register(User user) {
 
@@ -34,17 +35,16 @@ public class AuthenticationService {
             throw new IllegalArgumentException("User already exists");
         }
 
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
-
         User saved = userRepository.save(user);
-
         UserEntity userEntity = userMapper.userToUserEntity(saved);
-
         String jwtToken = jwtService.generateToken(userEntity);
-
+        String refreshToken = refreshTokenService.createRefreshToken(saved.getId()).getToken();
         return AuthenticationResponse.builder()
-                .token(jwtToken)
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
@@ -63,21 +63,34 @@ public class AuthenticationService {
         UserEntity userEntity = userMapper.userToUserEntity(user);
 
         String jwtToken = jwtService.generateToken(userEntity);
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId()).getToken();
 
         return AuthenticationResponse.builder()
-                .token(jwtToken)
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
-    public User registerAdmin(RegisterRequest request) {
+    public AuthenticationResponse registerAdmin(RegisterRequest request) {
+
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("User already exists");
+        }
+
         User user = userMapper.registerRequestToUser(request);
         user.setRole(Role.ADMIN);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
-    }
 
-    public String generateToken(User user) {
-        UserEntity userEntity = userMapper.userToUserEntity(user);
-        return jwtService.generateToken(userEntity);
+        User saved = userRepository.save(user);
+
+        UserEntity userEntity = userMapper.userToUserEntity(saved);
+
+        String accessToken = jwtService.generateToken(userEntity);
+        String refreshToken = refreshTokenService.createRefreshToken(saved.getId()).getToken();
+
+        return AuthenticationResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }

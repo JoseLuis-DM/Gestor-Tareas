@@ -1,6 +1,8 @@
 package com.portafolio.gestor_tareas.auth.infrastructure;
 
 import com.portafolio.gestor_tareas.auth.application.AuthenticationService;
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
+import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,28 +36,32 @@ public class AuthenticationController {
             @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
     @PostMapping("/register")
-    public ResponseEntity<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> register(@RequestBody RegisterRequest request) {
         User user = userMapper.registerRequestToUser(request);
-
-        return ResponseEntity.ok(authenticationService.register(user));
+        AuthenticationResponse authResponse = authenticationService.register(user);
+        return ApiResponseFactory.created(authResponse, "User successfully registered");
     }
 
     @Operation(summary = "Authenticate user",
             description = "Generates a JWT token for the user if the credentials are correct.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User successfully registered", content = @Content),
+            @ApiResponse(responseCode = "200", description = "User successfully authenticate", content = @Content),
             @ApiResponse(responseCode = "401", ref = "Unauthorized", content = @Content)
     })
     @PostMapping("/authenticate")
-    public ResponseEntity<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
-        return ResponseEntity.ok(authenticationService.authenticate(request));
+    public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> authenticate(@RequestBody AuthenticationRequest request) {
+
+        AuthenticationResponse authResponse = authenticationService.authenticate(request);
+
+        return ApiResponseFactory.success(authResponse, "User successfully authenticate");
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create-admin")
-    public ResponseEntity<AuthenticationResponse> createAdmin(@RequestBody RegisterRequest request) {
-        User user = authenticationService.registerAdmin(request);
-        String token = authenticationService.generateToken(user);
-        return ResponseEntity.ok(new AuthenticationResponse(token));
+    public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> createAdmin(@RequestBody RegisterRequest request) {
+
+        AuthenticationResponse authResponse = authenticationService.registerAdmin(request);
+
+        return ApiResponseFactory.created(authResponse, "Admin successfully registered");
     }
 }

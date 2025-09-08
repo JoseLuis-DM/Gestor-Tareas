@@ -1,5 +1,7 @@
 package com.portafolio.gestor_tareas.task.infrastructure;
 
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
+import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.task.domain.Task;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
@@ -37,14 +39,14 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<TaskDTO> register(@Valid @RequestBody TaskDTO taskDTO) {
+    public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
         Task task = taskMapper.taskDTOToTask(taskDTO);
 
         Task register = taskService.save(task);
 
         TaskDTO registerDTO = taskMapper.taskToTaskDTO(register);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(registerDTO);
+        return ApiResponseFactory.created(registerDTO, "Task created successfully");
     }
 
     @Operation(summary = "Update an existing task",
@@ -56,7 +58,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @PutMapping
-    public ResponseEntity<TaskDTO> update(@Valid @RequestBody TaskDTO taskDTO) {
+    public ResponseEntity<ApiResponseDTO<TaskDTO>> update(@Valid @RequestBody TaskDTO taskDTO) {
 
         Task task = taskMapper.taskDTOToTask(taskDTO);
 
@@ -64,7 +66,7 @@ public class TaskControllerImpl implements TaskController{
 
         TaskDTO updateDTO = taskMapper.taskToTaskDTO(update);
 
-        return ResponseEntity.ok(updateDTO);
+        return ApiResponseFactory.success(updateDTO, "Task updated successfully");
     }
 
     @Operation(summary = "Find task by ID",
@@ -76,13 +78,13 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<TaskDTO> findById(@PathVariable Long id) throws NotFoundException {
+    public ResponseEntity<ApiResponseDTO<TaskDTO>> findById(@PathVariable Long id) throws NotFoundException {
 
         Task task = taskService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Task not found"));
 
         TaskDTO taskDTO = taskMapper.taskToTaskDTO(task);
-        return ResponseEntity.ok(taskDTO);
+        return ApiResponseFactory.success(taskDTO, "Task found");
     }
 
     @Operation(summary = "List all tasks",
@@ -94,11 +96,11 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping
-    public ResponseEntity<List<TaskDTO>> findAll() {
+    public ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll() {
         List<TaskDTO> taskDTO = taskService.findAll()
                 .stream().map(taskMapper::taskToTaskDTO).toList();
 
-        return ResponseEntity.ok(taskDTO);
+        return ApiResponseFactory.success(taskDTO, "Tasks found");
     }
 
     @Operation(summary = "Delete task by ID",
@@ -109,9 +111,9 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponseDTO<Void>> deleteById(@PathVariable Long id) {
         taskService.delete(id);
 
-        return ResponseEntity.noContent().build();
+        return ApiResponseFactory.success(null, "Task deleted");
     }
 }

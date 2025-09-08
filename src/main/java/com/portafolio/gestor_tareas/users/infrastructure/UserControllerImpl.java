@@ -1,5 +1,7 @@
 package com.portafolio.gestor_tareas.users.infrastructure;
 
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
+import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserService;
@@ -14,14 +16,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.config.annotation.web.SecurityMarker;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
@@ -40,14 +39,14 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<UserDTO> register(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> register(@Valid @RequestBody UserDTO userDTO) {
         User user = userMapper.userDTOToUser(userDTO);
 
         User register = userService.register(user);
 
         UserDTO registerDTO = userMapper.userToUserDTO(register);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(registerDTO);
+        return ApiResponseFactory.created(registerDTO, "User created successfully");
     }
 
     @Operation(summary = "Update an existing user",
@@ -59,14 +58,14 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @PutMapping
-    public ResponseEntity<UserDTO> update(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> update(@Valid @RequestBody UserDTO userDTO) {
         User user = userMapper.userDTOToUser(userDTO);
 
         User update = userService.update(user);
 
         UserDTO updateDTO = userMapper.userToUserDTO(update);
 
-        return ResponseEntity.ok(updateDTO);
+        return ApiResponseFactory.success(updateDTO, "User updated successfully");
     }
 
     @Operation(summary = "Find user by ID",
@@ -78,13 +77,13 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> findById(@PathVariable Long id) throws NotFoundException {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> findById(@PathVariable Long id) throws NotFoundException {
 
         User user = userService.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         UserDTO userDTO = userMapper.userToUserDTO(user);
-        return ResponseEntity.ok(userDTO);
+        return ApiResponseFactory.success(userDTO, "User found");
     }
 
     @Operation(summary = "List all users",
@@ -97,12 +96,12 @@ public class UserControllerImpl implements UserController{
     })
     @GetMapping
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<List<UserDTO>> findAll() {
+    public ResponseEntity<ApiResponseDTO<List<UserDTO>>> findAll() {
 
         List<UserDTO> userDTOS = userService.findAll().stream()
                 .map(userMapper::userToUserDTO).toList();
 
-        return ResponseEntity.ok(userDTOS);
+        return ApiResponseFactory.success(userDTOS, "Users found");
     }
 
     @Operation(summary = "Delete user by id",
@@ -113,10 +112,10 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponseDTO<Void>> delete(@PathVariable Long id) {
 
         userService.delete(id);
 
-        return ResponseEntity.noContent().build();
+        return ApiResponseFactory.success(null, "User deleted");
     }
 }

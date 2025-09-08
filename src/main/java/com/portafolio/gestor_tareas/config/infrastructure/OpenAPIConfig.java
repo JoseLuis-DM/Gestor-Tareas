@@ -1,8 +1,7 @@
 package com.portafolio.gestor_tareas.config.infrastructure;
 
-import com.portafolio.gestor_tareas.exception.domain.ApiError;
+import com.portafolio.gestor_tareas.dto.ApiError;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
