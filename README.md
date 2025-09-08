@@ -9,7 +9,7 @@ Este proyecto es un **Gestor de Tareas** desarrollado con **Spring Boot 3**, **S
 - Spring Boot 3
 - Spring Security con JWT
 - Spring Data JPA
-- PostgreSQL
+- MySQL
 - Maven
 
 ---
@@ -20,7 +20,7 @@ Este proyecto es un **Gestor de Tareas** desarrollado con **Spring Boot 3**, **S
 ✅ CRUD de tareas (crear, leer, actualizar, eliminar)  
 ✅ Roles de usuario (`USER`, `ADMIN`)  
 ✅ Seguridad en endpoints (solo autenticados pueden gestionar tareas)  
-✅ Documentación de API con **Swagger** (opcional)
+✅ Documentación de API con **Swagger** 
 
 ---
 
