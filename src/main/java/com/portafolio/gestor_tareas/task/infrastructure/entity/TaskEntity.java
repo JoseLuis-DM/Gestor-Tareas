@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.task.infrastructure.entity;
 
+import com.portafolio.gestor_tareas.audit.Auditable;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,7 +17,7 @@ import java.time.LocalDateTime;
 @Table(name = "app_tasks",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "title"})
 )
-public class TaskEntity {
+public class TaskEntity extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,21 +30,7 @@ public class TaskEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    // (Equals y hashcode) evita probelmas con relaciones bidireccionales al solo usar el id
+    // (Equals y hashcode) evita problemas con relaciones bidireccionales al solo usar el id
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

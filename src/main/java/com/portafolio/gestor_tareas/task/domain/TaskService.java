@@ -5,9 +5,9 @@ import java.util.Optional;
 
 public interface TaskService {
 
-    Task save(Task task);
+    Task save(Task task, Long userId);
 
-    Task update(Task task);
+    Task update(Task task, Long userId);
 
     Optional<Task> findById(Long id);
 

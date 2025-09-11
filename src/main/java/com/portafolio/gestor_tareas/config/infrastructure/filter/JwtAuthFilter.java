@@ -68,7 +68,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
-            UserDetails userDetails =userDetailsService.loadUserByUsername(userEmail);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
             boolean isTokenValid = jwtService.isTokenValid(jwt, userDetails);
             boolean isTokenExpired = jwtService.isTokenExpired(jwt);
