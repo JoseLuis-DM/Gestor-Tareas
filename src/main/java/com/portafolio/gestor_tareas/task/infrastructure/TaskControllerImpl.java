@@ -1,5 +1,7 @@
 package com.portafolio.gestor_tareas.task.infrastructure;
 
+import com.portafolio.gestor_tareas.config.application.JwtService;
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityUtils;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
@@ -7,6 +9,9 @@ import com.portafolio.gestor_tareas.task.domain.Task;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
+import com.portafolio.gestor_tareas.users.domain.User;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
+import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -18,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,6 +38,8 @@ public class TaskControllerImpl implements TaskController{
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
+    private final SecurityUtils securityUtils;
+    private final JwtService jwtService;
 
     @Operation(summary = "Register a new task",
             description = "Creates a new task in the system")
@@ -40,13 +49,11 @@ public class TaskControllerImpl implements TaskController{
     })
     @PostMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
+        Long userId = securityUtils.getCurrentUserId();
         Task task = taskMapper.taskDTOToTask(taskDTO);
+        Task saved = taskService.save(task, userId);
 
-        Task register = taskService.save(task);
-
-        TaskDTO registerDTO = taskMapper.taskToTaskDTO(register);
-
-        return ApiResponseFactory.created(registerDTO, "Task created successfully");
+        return ApiResponseFactory.created(taskMapper.taskToTaskDTO(saved), "Task created successfully");
     }
 
     @Operation(summary = "Update an existing task",
@@ -59,14 +66,10 @@ public class TaskControllerImpl implements TaskController{
     })
     @PutMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> update(@Valid @RequestBody TaskDTO taskDTO) {
-
+        Long userId = securityUtils.getCurrentUserId();
         Task task = taskMapper.taskDTOToTask(taskDTO);
-
-        Task update = taskService.update(task);
-
-        TaskDTO updateDTO = taskMapper.taskToTaskDTO(update);
-
-        return ApiResponseFactory.success(updateDTO, "Task updated successfully");
+        Task updated = taskService.update(task, userId);
+        return ApiResponseFactory.success(taskMapper.taskToTaskDTO(updated), "Task updated successfully");
     }
 
     @Operation(summary = "Find task by ID",

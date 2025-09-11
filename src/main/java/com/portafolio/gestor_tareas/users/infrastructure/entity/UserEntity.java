@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.users.infrastructure.entity;
 
+import com.portafolio.gestor_tareas.audit.Auditable;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.domain.User;
@@ -20,7 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "app_users")
-public class UserEntity implements UserDetails {
+public class UserEntity extends Auditable implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

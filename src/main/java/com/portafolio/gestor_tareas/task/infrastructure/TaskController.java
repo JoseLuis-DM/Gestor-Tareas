@@ -2,7 +2,9 @@ package com.portafolio.gestor_tareas.task.infrastructure;
 
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
