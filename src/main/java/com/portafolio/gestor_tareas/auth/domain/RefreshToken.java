@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.auth.domain;
 
+import com.portafolio.gestor_tareas.audit.Auditable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,7 +15,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "refresh_tokens")
 @Builder
-public class RefreshToken {
+public class RefreshToken extends Auditable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,9 +30,13 @@ public class RefreshToken {
     @Column(nullable = false)
     private Instant expired;
 
-    public RefreshToken(String token, Long userId, Instant expired) {
+    @Column(nullable = false)
+    private boolean revoked;
+
+    public RefreshToken(String token, Long userId, Instant expired, boolean revoked) {
         this.token = token;
         this.userId = userId;
         this.expired = expired;
+        this.revoked = revoked;
     }
 }

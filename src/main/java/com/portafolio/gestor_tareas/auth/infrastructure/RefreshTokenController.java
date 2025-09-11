@@ -83,7 +83,7 @@ public class RefreshTokenController {
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logout(@RequestBody RefreshTokenRequest request) {
-        refreshTokenService.deleteByToken(request.refreshToken);
+        refreshTokenService.revokeByToken(request.refreshToken);
         return ApiResponseFactory.success(null, "Logout successful");
     }
 
@@ -95,7 +95,7 @@ public class RefreshTokenController {
     })
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {
-        refreshTokenService.deleteByUserId(user.getUser().getId());
+        refreshTokenService.revokeByUserId(user.getUser().getId());
         return ApiResponseFactory.success(null, "Successful global logout");
     }
 }

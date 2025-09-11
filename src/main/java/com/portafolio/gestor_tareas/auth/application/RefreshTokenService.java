@@ -8,6 +8,7 @@ import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,22 +22,32 @@ public class RefreshTokenService{
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
     private final long refreshTokenDurationSec = 7 * 24 * 60 * 60; // 7 days
 
     public RefreshToken createRefreshToken(Long userId) {
 
         String token = UUID.randomUUID().toString();
+        String hashedToken = passwordEncoder.encode(token);
+
         Instant expiryDate = Instant.now().plusSeconds(refreshTokenDurationSec);
 
-        RefreshToken refreshToken = new RefreshToken(token, userId, expiryDate);
-        return refreshTokenRepository.save(refreshToken);
+        RefreshToken refreshToken = new RefreshToken(hashedToken, userId, expiryDate, false);
+
+        refreshTokenRepository.save(refreshToken);
+
+        refreshToken.setToken(token);
+        return refreshToken;
     }
 
     public RefreshToken validateRefreshToken(String token) {
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(token)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+        RefreshToken refreshToken = refreshTokenRepository.findAll().stream()
+                .filter(rt -> !rt.isRevoked() && passwordEncoder.matches(token, rt.getToken()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Refresh token not found or revoked"));
 
         if (refreshToken.getExpired().isBefore(Instant.now())) {
+            refreshToken.setRevoked(true);
             refreshTokenRepository.delete(refreshToken);
             throw new RuntimeException("Refresh token expired");
         }
@@ -59,11 +70,21 @@ public class RefreshTokenService{
         return refreshTokenRepository.findByToken(token);
    }
 
-   public void deleteByUserId(Long userId) {
-        refreshTokenRepository.deleteByUserId(userId);
+   public void revokeByUserId(Long userId) {
+        refreshTokenRepository.findByUserId(userId)
+                .forEach(rt -> {
+                    rt.setRevoked(true);
+                    refreshTokenRepository.save(rt);
+                });
    }
 
-   public void deleteByToken(String token) {
-        refreshTokenRepository.deleteByToken(token);
+   public void revokeByToken(String token) {
+        refreshTokenRepository.findAll().stream()
+                .filter(rt -> passwordEncoder.matches(token, rt.getToken()))
+                .findFirst()
+                .ifPresent(rt -> {
+                    rt.setRevoked(true);
+                    refreshTokenRepository.save(rt);
+                });
    }
 }
