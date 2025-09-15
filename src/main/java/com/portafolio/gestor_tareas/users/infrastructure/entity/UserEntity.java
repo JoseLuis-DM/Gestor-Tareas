@@ -2,6 +2,7 @@ package com.portafolio.gestor_tareas.users.infrastructure.entity;
 
 import com.portafolio.gestor_tareas.audit.Auditable;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
+import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.domain.User;
 import jakarta.persistence.*;
@@ -10,9 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Getter
@@ -36,8 +35,21 @@ public class UserEntity extends Auditable implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "user_permissions",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "permission")
+    private Set<Permission> permissions = new HashSet<>();
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskEntity> tasks = new ArrayList<>();
+
+    public UserEntity(User user) {
+        super();
+    }
 
     public void addTask(TaskEntity task) {
         tasks.add(task);
@@ -51,7 +63,17 @@ public class UserEntity extends Auditable implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+
+        if (role != null) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        }
+
+        if (permissions != null) {
+            permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority(p.name())));
+        }
+
+        return authorities;
     }
 
     @Override
@@ -96,5 +118,13 @@ public class UserEntity extends Auditable implements UserDetails {
     @Override
     public int hashCode() {
         return getClass().hashCode();
+    }
+
+    public void addPermission(Permission permission) {
+        this.permissions.add(permission);
+    }
+
+    public void removePermission(Permission permission) {
+        this.permissions.remove(permission);
     }
 }

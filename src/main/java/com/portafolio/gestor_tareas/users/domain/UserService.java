@@ -2,6 +2,7 @@ package com.portafolio.gestor_tareas.users.domain;
 
 import java.util.Optional;
 import java.util.List;
+import java.util.Set;
 
 public interface UserService {
 
@@ -14,4 +15,6 @@ public interface UserService {
     List<User> findAll();
 
     void delete(Long id);
+
+    void addPermissions(Long userId, String email, Set<Permission> permissions);
 }

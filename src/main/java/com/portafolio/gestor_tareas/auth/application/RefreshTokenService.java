@@ -5,7 +5,8 @@ import com.portafolio.gestor_tareas.auth.domain.RefreshTokenRepository;
 import com.portafolio.gestor_tareas.config.application.JwtService;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
-import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
+import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +21,7 @@ import java.util.UUID;
 public class RefreshTokenService{
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final UserRepository userRepository;
+    private final SpringUserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final long refreshTokenDurationSec = 7 * 24 * 60 * 60; // 7 days
@@ -58,12 +59,16 @@ public class RefreshTokenService{
     public String generateNewAccessToken(String refreshTokenStr) {
         RefreshToken refreshToken = validateRefreshToken(refreshTokenStr);
 
-        User user = userRepository.findById(refreshToken.getUserId())
+        /*User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         UserDetailsAdapter userDetails = new UserDetailsAdapter(user);
 
-        return jwtService.generateToken(userDetails);
+        return jwtService.generateToken(userDetails);*/
+        UserEntity userEntity = userRepository.findById(refreshToken.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return jwtService.generateToken(userEntity);
     }
 
    public Optional<RefreshToken> findByToken(String token) {

@@ -6,7 +6,7 @@ import com.portafolio.gestor_tareas.config.application.JwtService;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
-import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -94,8 +94,8 @@ public class RefreshTokenController {
             @ApiResponse(responseCode = "404", ref = "User not found")
     })
     @PostMapping("/logout-all")
-    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(@AuthenticationPrincipal UserDetailsAdapter user) {
-        refreshTokenService.revokeByUserId(user.getUser().getId());
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(@AuthenticationPrincipal UserEntity user) {
+        refreshTokenService.revokeByUserId(user.getId());
         return ApiResponseFactory.success(null, "Successful global logout");
     }
 }
