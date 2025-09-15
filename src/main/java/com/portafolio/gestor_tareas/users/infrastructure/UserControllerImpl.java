@@ -3,6 +3,7 @@ package com.portafolio.gestor_tareas.users.infrastructure;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
+import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserService;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
@@ -18,9 +19,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -95,7 +100,7 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDTO<List<UserDTO>>> findAll() {
 
         List<UserDTO> userDTOS = userService.findAll().stream()
@@ -117,5 +122,39 @@ public class UserControllerImpl implements UserController{
         userService.delete(id);
 
         return ApiResponseFactory.success(null, "User deleted");
+    }
+
+    @Operation(summary = "Add permission by ID",
+            description = "Aggregation of permissions in the user by ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Added permits correctly"),
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/{id}/permissions")
+    public ResponseEntity<ApiResponseDTO<Object>> addPermissionsById(
+            @PathVariable("id") Long userId,
+            @RequestBody Set<Permission> permissions
+    ) {
+        userService.addPermissions(userId, null, permissions);
+
+        return ApiResponseFactory.success(null, "Added permits correctly");
+    }
+
+    @Operation(summary = "Add permission by email",
+            description = "Aggregation of permissions in the user by email")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Added permits correctly"),
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/email/{email}/permissions")
+    public ResponseEntity<ApiResponseDTO<Object>> addPermissionsByEmail(
+            @PathVariable String email,
+            @RequestBody Set<Permission> permissions
+    ) {
+        userService.addPermissions(null, email, permissions);
+
+        return ApiResponseFactory.success(null, "Added permits correctly");
     }
 }

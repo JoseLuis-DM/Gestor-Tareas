@@ -2,7 +2,6 @@ package com.portafolio.gestor_tareas.config.infrastructure;
 
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
-import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;

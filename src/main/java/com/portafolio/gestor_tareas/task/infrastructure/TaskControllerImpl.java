@@ -11,7 +11,6 @@ import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
-import com.portafolio.gestor_tareas.users.infrastructure.security.UserDetailsAdapter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -47,6 +47,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "201", description = "Task created successfully"),
             @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
+    @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PostMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
         Long userId = securityUtils.getCurrentUserId();
@@ -64,6 +65,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
+    @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PutMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> update(@Valid @RequestBody TaskDTO taskDTO) {
         Long userId = securityUtils.getCurrentUserId();
@@ -80,6 +82,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
+    @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseDTO<TaskDTO>> findById(@PathVariable Long id) throws NotFoundException {
 
@@ -98,6 +101,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
+    @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping
     public ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll() {
         List<TaskDTO> taskDTO = taskService.findAll()
@@ -113,6 +117,7 @@ public class TaskControllerImpl implements TaskController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
+    @PreAuthorize("hasAuthority('TASK_DELETE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponseDTO<Void>> deleteById(@PathVariable Long id) {
         taskService.delete(id);

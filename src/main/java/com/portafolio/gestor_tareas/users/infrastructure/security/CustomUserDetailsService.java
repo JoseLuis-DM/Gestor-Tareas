@@ -1,6 +1,7 @@
 package com.portafolio.gestor_tareas.users.infrastructure.security;
 
 import com.portafolio.gestor_tareas.users.domain.User;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.MySqlUserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -20,6 +21,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return new UserDetailsAdapter(user);
+        return new UserEntity(user);
     }
 }

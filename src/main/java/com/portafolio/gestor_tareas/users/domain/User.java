@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -16,5 +17,6 @@ public class User {
     private String email;
     private String password;
     private Role role;
+    private Set<Permission> permissions;
     private List<TaskEntity> task;
 }
