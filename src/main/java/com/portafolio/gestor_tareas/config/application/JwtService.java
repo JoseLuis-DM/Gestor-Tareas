@@ -4,6 +4,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -18,7 +19,9 @@ import java.util.stream.Collectors;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = System.getenv("JWT_SECRET_KEY");
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     private static final long TOKEN_EXPIRATION = 1000 * 60 * 60 * 24; // 1 day
     private static final long REFRESH_WINDOW = 1000 * 60 * 60 * 24 * 7; // 7 days
 
@@ -55,8 +58,13 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()));
+
+        try {
+            final String username = extractUsername(token);
+            return (username.equals(userDetails.getUsername()));
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public boolean isTokenExpired(String token) {
@@ -83,7 +91,7 @@ public class JwtService {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
