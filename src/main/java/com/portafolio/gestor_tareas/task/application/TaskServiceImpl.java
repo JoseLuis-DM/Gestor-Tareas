@@ -6,6 +6,7 @@ import com.portafolio.gestor_tareas.task.domain.TaskRepository;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
+import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
@@ -73,6 +74,8 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void delete(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("The task does not exist"));
         taskRepository.deleteById(id);
     }
 }

@@ -23,8 +23,6 @@ import java.util.Set;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private final SpringUserRepository springUserRepository;
-    private final UserMapper userMapper;
 
     @Override
     public User register(User user) {
@@ -64,18 +62,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long id) {
+        User user = userRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("The user does not exist"));
         userRepository.deleteById(id);
     }
 
     @Transactional
     public void addPermissions(Long userId, String email, Set<Permission> permissions) {
-        UserEntity user;
+        User user;
 
         if (userId != null) {
-            user = springUserRepository.findById(userId)
+            user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
         } else if (email != null) {
-            user = springUserRepository.findByEmail(email)
+            user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
         } else {
             throw new IllegalArgumentException("UserId or email must be provided");
@@ -87,6 +87,6 @@ public class UserServiceImpl implements UserService {
 
         user.getPermissions().addAll(permissions);
 
-        springUserRepository.save(user);
+        userRepository.save(user);
     }
 }

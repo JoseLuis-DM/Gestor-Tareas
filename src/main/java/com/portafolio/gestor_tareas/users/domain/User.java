@@ -1,12 +1,16 @@
 package com.portafolio.gestor_tareas.users.domain;
 
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 import java.util.Set;
 
+@AllArgsConstructor
+@NoArgsConstructor
 @Data
 @Builder
 public class User {
