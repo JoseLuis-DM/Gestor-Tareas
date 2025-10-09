@@ -21,7 +21,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -88,10 +90,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             final Claims claims = jwtService.extractAllClaims(jwt);
-            final List<?> rolesRaw = claims.get("roles", List.class);
-            final List<SimpleGrantedAuthority> authorities = rolesRaw.stream()
-                    .map(role -> new SimpleGrantedAuthority(role.toString()))
-                    .toList();
+
+            final List<String> rolesRaw = claims.get("roles", List.class);
+            final List<String> permissionsRaw = claims.get("permissions", List.class);
+
+            final Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+            if (rolesRaw != null) {
+                rolesRaw.forEach(r -> authorities.add(new SimpleGrantedAuthority(r)));
+            }
+            if (permissionsRaw != null) {
+                permissionsRaw.forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
+            }
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,

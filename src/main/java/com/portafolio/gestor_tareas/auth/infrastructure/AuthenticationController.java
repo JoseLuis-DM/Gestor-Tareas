@@ -56,6 +56,12 @@ public class AuthenticationController {
         return ApiResponseFactory.success(authResponse, "User successfully authenticate");
     }
 
+    @Operation(summary = "Register a new admin",
+            description = "Creates a new admin in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Admin created successfully"),
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+    })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create-admin")
     public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> createAdmin(@RequestBody RegisterRequest request) {

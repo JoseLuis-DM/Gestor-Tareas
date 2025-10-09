@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,17 +22,21 @@ public class GlobalExceptionHandler {
     // NotFoundException → HTTP 404
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.NOT_FOUND.value())
                 .error(HttpStatus.NOT_FOUND.getReasonPhrase())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .errors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
     }
 
-    // BadRequest -> HTTP 400
+    // Validation errors -> HTTP 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
 
@@ -45,32 +51,106 @@ public class GlobalExceptionHandler {
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .errors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiError);
     }
 
+
+    // BadRequestException -> HTTP 400
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiError> handleBadRequest(BadRequestException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiError);
+    }
+
+    // JSON parse errors → HTTP 400
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleJsonParseError(HttpMessageNotReadableException e, HttpServletRequest request) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(List.of("Invalid request body"))
+                .build();
+
+        return ResponseEntity.badRequest().body(apiError);
+    }
+
     // Forbidden -> HTTP 403
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiError> handleAccessDenied(ForbiddenException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.FORBIDDEN.value())
                 .error(HttpStatus.FORBIDDEN.getReasonPhrase())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .errors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
     }
 
-    // Conflict -> HTTP 409
+    // AccessDenied -> HTTP 403
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleSpringSecurityAccessDenied(AccessDeniedException e, HttpServletRequest request) {
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.FORBIDDEN.value())
+                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(List.of("Forbidden"))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
+    }
+
+
+    // Conflict UserAlreadyExist -> HTTP 409
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.CONFLICT.value())
                 .error(HttpStatus.CONFLICT.getReasonPhrase())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
+    }
+
+    // Conflict TaskAlreadyExist -> HTTP 409
+    @ExceptionHandler(TaskAlreadyExistException.class)
+    public ResponseEntity<ApiError> handleTaskAlreadyExists(TaskAlreadyExistException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
@@ -79,11 +159,15 @@ public class GlobalExceptionHandler {
     // Exception -> 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
                 .path(request.getRequestURI())
                 .timestamp(LocalDateTime.now())
+                .errors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);

@@ -1,6 +1,8 @@
 package com.portafolio.gestor_tareas.users.application;
 
+import com.portafolio.gestor_tareas.exception.domain.BadRequestException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
+import com.portafolio.gestor_tareas.exception.domain.UserAlreadyExistsException;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
@@ -13,10 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +27,7 @@ public class UserServiceImpl implements UserService {
     public User register(User user) {
 
         if (userRepository.existsEmail(user.getEmail())) {
-            throw new RuntimeException("The email is already registered");
+            throw new UserAlreadyExistsException("The email is already registered");
         }
 
         return userRepository.save(user);
@@ -36,16 +35,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User update(User user) {
-
         User updateUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         if (!updateUser.getEmail().equals(user.getEmail()) &&
                 userRepository.existsEmail(user.getEmail())) {
-            throw new RuntimeException("The email is already registered by another user");
+            throw new UserAlreadyExistsException("The email is already registered by another user");
         }
 
-        BeanUtils.copyProperties(user, updateUser, "role", "id", "password");
+        if (user.getFirstname() == null || user.getFirstname().isEmpty()
+                || user.getLastname() == null || user.getLastname().isEmpty()) {
+            throw new BadRequestException("The first and last name cannot be empty or null");
+        }
+
+        updateUser.setFirstname(user.getFirstname());
+        updateUser.setLastname(user.getLastname());
+        updateUser.setEmail(user.getEmail());
+        updateUser.setPassword(user.getPassword());
 
         return userRepository.save(updateUser);
     }
@@ -62,8 +68,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void delete(Long id) {
+
         User user = userRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("The user does not exist"));
+                        .orElseThrow(() -> new NotFoundException("The user does not exist"));
         userRepository.deleteById(id);
     }
 
@@ -73,16 +80,16 @@ public class UserServiceImpl implements UserService {
 
         if (userId != null) {
             user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new NotFoundException("User not found"));
         } else if (email != null) {
             user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new NotFoundException("User not found"));
         } else {
-            throw new IllegalArgumentException("UserId or email must be provided");
+            throw new BadRequestException("UserId or email must be provided");
         }
 
-        if (user.getPermissions() == null) {
-            user.setPermissions(new HashSet<>());
+        if (permissions == null || permissions.isEmpty()) {
+            throw new BadRequestException("Permissions must be provided");
         }
 
         user.getPermissions().addAll(permissions);

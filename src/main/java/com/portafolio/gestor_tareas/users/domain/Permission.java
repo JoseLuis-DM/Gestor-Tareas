@@ -5,7 +5,5 @@ public enum Permission {
     TASK_READ,
     TASK_WRITE,
     TASK_DELETE,
-    TASK_ASSIGN,
-    USER_READ,
-    USER_WRITE
+    TASK_ASSIGN
 }

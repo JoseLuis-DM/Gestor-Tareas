@@ -36,9 +36,7 @@ public class DataInitializer implements CommandLineRunner {
                     Permission.TASK_READ,
                     Permission.TASK_WRITE,
                     Permission.TASK_ASSIGN,
-                    Permission.TASK_DELETE,
-                    Permission.USER_WRITE,
-                    Permission.USER_READ
+                    Permission.TASK_DELETE
             ));
 
             userRepository.save(admin);

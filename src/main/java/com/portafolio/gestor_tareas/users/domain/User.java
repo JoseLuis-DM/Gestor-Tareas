@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +23,10 @@ public class User {
     private String email;
     private String password;
     private Role role;
-    private Set<Permission> permissions;
-    private List<TaskEntity> task;
+
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
+
+    @Builder.Default
+    private List<TaskEntity> task = new ArrayList<>();
 }

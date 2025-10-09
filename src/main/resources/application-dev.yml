@@ -15,3 +15,6 @@ spring:
 app:
   admin:
     password: admin123
+
+jwt:
+  secret: ${JWT_SECRET}
