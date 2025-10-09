@@ -1,11 +1,14 @@
 package com.portafolio.gestor_tareas.task.application;
 
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
+import com.portafolio.gestor_tareas.exception.domain.TaskAlreadyExistException;
 import com.portafolio.gestor_tareas.task.domain.Task;
 import com.portafolio.gestor_tareas.task.domain.TaskRepository;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
+import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
@@ -13,6 +16,7 @@ import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRe
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -27,6 +31,7 @@ public class TaskServiceImpl implements TaskService {
     private final TaskMapper taskMapper;
     private final SpringTaskRepository springTaskRepository;
     private final SpringUserRepository userRepository;
+    private final SecurityConfig securityConfig;
 
     @Override
     @Transactional
@@ -34,26 +39,26 @@ public class TaskServiceImpl implements TaskService {
 
         if (springTaskRepository.findByUserIdAndTitleIgnoreCase(
                 userId, task.getTitle()).isPresent())    {
-            throw new IllegalArgumentException("The task already exists");
+            throw new TaskAlreadyExistException("The task already exists");
         }
 
         UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalStateException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
         task.setUser(user);
 
         return taskRepository.save(task);
     }
 
-
     @Transactional
-    public Task update(Task task, Long userId) {
+    public Task update(Task task, Long userId, UserDetails userDetails) {
 
         Task updateTask = taskRepository.findById(task.getId())
                 .orElseThrow(() -> new NotFoundException("Task not found"));
 
-        if (!updateTask.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("You cannot update a task that is not yours");
-        }
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        securityConfig.checkAccess(updateTask.getUser().getId(), userDetails);
 
         updateTask.setTitle(task.getTitle());
         updateTask.setDescription(task.getDescription());
@@ -73,9 +78,12 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Long id, UserDetails userDetails) {
         Task task = taskRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("The task does not exist"));
+                .orElseThrow(() -> new NotFoundException("The task does not exist"));
+
+        securityConfig.checkAccess(task.getUser().getId(), userDetails);
+
         taskRepository.deleteById(id);
     }
 }

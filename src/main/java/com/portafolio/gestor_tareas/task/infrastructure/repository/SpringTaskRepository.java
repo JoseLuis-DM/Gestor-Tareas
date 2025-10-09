@@ -10,5 +10,5 @@ import java.util.Optional;
 @Repository
 public interface SpringTaskRepository extends JpaRepository<TaskEntity, Long> {
 
-    Optional<Task> findByUserIdAndTitleIgnoreCase(Long userId, String title);
+    Optional<TaskEntity> findByUserIdAndTitleIgnoreCase(Long userId, String title);
 }

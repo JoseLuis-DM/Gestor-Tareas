@@ -1,6 +1,7 @@
 package com.portafolio.gestor_tareas.task.infrastructure;
 
 import com.portafolio.gestor_tareas.config.application.JwtService;
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityUtils;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
@@ -25,6 +26,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,16 +43,19 @@ public class TaskControllerImpl implements TaskController{
     private final TaskMapper taskMapper;
     private final SecurityUtils securityUtils;
     private final JwtService jwtService;
+    private final SecurityConfig securityConfig;
 
     @Operation(summary = "Register a new task",
             description = "Creates a new task in the system")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Task created successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content),
+            @ApiResponse(responseCode = "409", ref = "TaskAlreadyExistException")
     })
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PostMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
+
         Long userId = securityUtils.getCurrentUserId();
         Task task = taskMapper.taskDTOToTask(taskDTO);
         Task saved = taskService.save(task, userId);
@@ -67,10 +73,14 @@ public class TaskControllerImpl implements TaskController{
     })
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PutMapping
-    public ResponseEntity<ApiResponseDTO<TaskDTO>> update(@Valid @RequestBody TaskDTO taskDTO) {
+    public ResponseEntity<ApiResponseDTO<TaskDTO>> update(
+            @Valid @RequestBody TaskDTO taskDTO,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
         Long userId = securityUtils.getCurrentUserId();
         Task task = taskMapper.taskDTOToTask(taskDTO);
-        Task updated = taskService.update(task, userId);
+        Task updated = taskService.update(task, userId, userDetails);
+
         return ApiResponseFactory.success(taskMapper.taskToTaskDTO(updated), "Task updated successfully");
     }
 
@@ -84,11 +94,15 @@ public class TaskControllerImpl implements TaskController{
     })
     @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<TaskDTO>> findById(@PathVariable Long id) throws NotFoundException {
+    public ResponseEntity<ApiResponseDTO<TaskDTO>> findById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails)
+            throws NotFoundException {
 
         Task task = taskService.findById(id)
                 .orElseThrow(() -> new NotFoundException("Task not found"));
 
+        securityConfig.checkAccess(task.getUser().getId(), userDetails);
         TaskDTO taskDTO = taskMapper.taskToTaskDTO(task);
         return ApiResponseFactory.success(taskDTO, "Task found");
     }
@@ -103,9 +117,18 @@ public class TaskControllerImpl implements TaskController{
     })
     @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping
-    public ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll() {
+    public ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll(@AuthenticationPrincipal UserDetails userDetails) {
+
+        Long currentUserId = securityUtils.getCurrentUserId();
+
         List<TaskDTO> taskDTO = taskService.findAll()
-                .stream().map(taskMapper::taskToTaskDTO).toList();
+                .stream()
+                .filter(task -> {
+                    return userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
+                            task.getUser().getId().equals(currentUserId);
+                })
+                .map(taskMapper::taskToTaskDTO)
+                .toList();
 
         return ApiResponseFactory.success(taskDTO, "Tasks found");
     }
@@ -119,8 +142,11 @@ public class TaskControllerImpl implements TaskController{
     })
     @PreAuthorize("hasAuthority('TASK_DELETE')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<Void>> deleteById(@PathVariable Long id) {
-        taskService.delete(id);
+    public ResponseEntity<ApiResponseDTO<Void>> deleteById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        taskService.delete(id, userDetails);
 
         return ApiResponseFactory.success(null, "Task deleted");
     }

@@ -1,5 +1,8 @@
 package com.portafolio.gestor_tareas.users.infrastructure;
 
+import com.portafolio.gestor_tareas.config.infrastructure.ApplicationConfig;
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityUtils;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
@@ -18,8 +21,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashSet;
@@ -36,6 +42,7 @@ public class UserControllerImpl implements UserController{
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final SecurityConfig securityConfig;
 
     @Operation(summary = "Register a new user",
             description = "Creates a new user in the system")
@@ -44,7 +51,9 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<ApiResponseDTO<UserDTO>> register(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> register(
+            @Valid @RequestBody UserDTO userDTO) {
+
         User user = userMapper.userDTOToUser(userDTO);
 
         User register = userService.register(user);
@@ -63,12 +72,17 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @PutMapping
-    public ResponseEntity<ApiResponseDTO<UserDTO>> update(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> update(
+            @Valid @RequestBody UserDTO userDTO,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        securityConfig.checkAccess(userDTO.getId(), userDetails);
+
         User user = userMapper.userDTOToUser(userDTO);
 
-        User update = userService.update(user);
+        User updatedUser = userService.update(user);
 
-        UserDTO updateDTO = userMapper.userToUserDTO(update);
+        UserDTO updateDTO = userMapper.userToUserDTO(updatedUser);
 
         return ApiResponseFactory.success(updateDTO, "User updated successfully");
     }
@@ -82,7 +96,12 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<UserDTO>> findById(@PathVariable Long id) throws NotFoundException {
+    public ResponseEntity<ApiResponseDTO<UserDTO>> findById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails)
+            throws NotFoundException {
+
+        securityConfig.checkAccess(id, userDetails);
 
         User user = userService.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found"));
@@ -99,8 +118,8 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
-    @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping
     public ResponseEntity<ApiResponseDTO<List<UserDTO>>> findAll() {
 
         List<UserDTO> userDTOS = userService.findAll().stream()
@@ -116,8 +135,11 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "403", ref = "Forbidden"),
             @ApiResponse(responseCode = "404", ref = "NotFound")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<Void>> delete(@PathVariable Long id) {
+    public ResponseEntity<ApiResponseDTO<Void>> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         userService.delete(id);
 
