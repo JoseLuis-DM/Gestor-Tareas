@@ -3,6 +3,8 @@ package com.portafolio.gestor_tareas.application.integration;
 import com.portafolio.gestor_tareas.auth.application.RefreshTokenService;
 import com.portafolio.gestor_tareas.auth.domain.RefreshToken;
 import com.portafolio.gestor_tareas.auth.domain.RefreshTokenRepository;
+import com.portafolio.gestor_tareas.exception.domain.RefreshTokenExpiredException;
+import com.portafolio.gestor_tareas.exception.domain.RefreshTokenNotFoundException;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
@@ -10,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
@@ -18,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-public class RefreshTokenIntegrationTest {
+class RefreshTokenIntegrationTest {
 
     @Autowired
     private RefreshTokenService refreshTokenService;
@@ -28,6 +31,9 @@ public class RefreshTokenIntegrationTest {
 
     @Autowired
     private SpringUserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private UserEntity user;
 
@@ -40,13 +46,14 @@ public class RefreshTokenIntegrationTest {
         user.setEmail("integration@example.com");
         user.setPassword("123456");
         user.setRole(Role.USER);
-        userRepository.save(user);
+        userRepository.saveAndFlush(user);
     }
 
     @Test
     void testCreateAndValidateRefreshToken() {
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        refreshTokenRepository.flush();
 
         assertNotNull(refreshToken, "Refresh token must be generated");
         assertNotNull(refreshToken.getExpired(), "It must have an expiration date");
@@ -71,18 +78,26 @@ public class RefreshTokenIntegrationTest {
     void testRevokeByToken() {
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+        refreshTokenRepository.flush();
 
+        System.out.println(refreshToken.getToken());
+        System.out.println(refreshToken.getId());
         refreshTokenService.revokeByToken(refreshToken.getToken());
 
-        RefreshToken revoked = refreshTokenRepository.findById(refreshToken.getId()).orElseThrow();
-        assertTrue(revoked.isRevoked());
+        System.out.println(refreshToken.getId());
+        RefreshToken revoked = refreshTokenRepository.findById(refreshToken.getId())
+                .orElseThrow(() -> new RefreshTokenNotFoundException("Token is not found in DB"));
+
+        assertTrue(revoked.isRevoked(), "The token should be revoked");
     }
 
     @Test
     void testExpiredTokenThrowsException() {
 
+        String tokenValue = "expiredToken";
+
         RefreshToken expiredToken = new RefreshToken(
-                "hashedToken",
+                passwordEncoder.encode(tokenValue),
                 user.getId(),
                 Instant.now().minusSeconds(60),
                 false
@@ -90,10 +105,10 @@ public class RefreshTokenIntegrationTest {
 
         refreshTokenRepository.save(expiredToken);
 
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            refreshTokenService.validateRefreshToken("expiredToken");
+        RefreshTokenExpiredException exception = assertThrows(RefreshTokenExpiredException.class, () -> {
+            refreshTokenService.validateRefreshToken(tokenValue);
         });
 
-        assertEquals("Refresh token not found or revoked", exception.getMessage());
+        assertEquals("RefreshToken expired. Refresh token expired", exception.getMessage());
     }
 }

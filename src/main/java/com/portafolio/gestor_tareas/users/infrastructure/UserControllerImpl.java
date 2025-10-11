@@ -1,8 +1,6 @@
 package com.portafolio.gestor_tareas.users.infrastructure;
 
-import com.portafolio.gestor_tareas.config.infrastructure.ApplicationConfig;
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
-import com.portafolio.gestor_tareas.config.infrastructure.SecurityUtils;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
@@ -19,19 +17,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")

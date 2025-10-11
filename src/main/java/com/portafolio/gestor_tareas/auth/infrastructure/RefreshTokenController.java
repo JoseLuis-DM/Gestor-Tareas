@@ -1,19 +1,18 @@
 package com.portafolio.gestor_tareas.auth.infrastructure;
 
 import com.portafolio.gestor_tareas.auth.application.RefreshTokenService;
-import com.portafolio.gestor_tareas.auth.domain.RefreshToken;
 import com.portafolio.gestor_tareas.config.application.JwtService;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
-import com.portafolio.gestor_tareas.users.domain.UserRepository;
+import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
+import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,9 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("api/auth")
@@ -33,7 +29,7 @@ public class RefreshTokenController {
 
     private final RefreshTokenService refreshTokenService;
     private final JwtService jwtService;
-    private final UserRepository userRepository;
+    private final SpringUserRepository springUserRepository;
 
     @Schema(description = "Request to refresh the access token")
     public static class RefreshTokenRequest {
@@ -64,15 +60,11 @@ public class RefreshTokenController {
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
 
-        try {
-            String newAccessToken = refreshTokenService.generateNewAccessToken(request.refreshToken);
+        String newAccessToken = refreshTokenService.generateNewAccessToken(request.refreshToken);
 
-            RefreshTokenResponse response = new RefreshTokenResponse(newAccessToken, request.refreshToken);
+        RefreshTokenResponse response = new RefreshTokenResponse(newAccessToken, request.refreshToken);
 
-            return ApiResponseFactory.success(response, "Token successfully renewed");
-        } catch (IllegalArgumentException e) {
-            return ApiResponseFactory.error(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
+        return ApiResponseFactory.success(response, "Token successfully renewed");
     }
 
     @Operation(summary = "Sign out of the current device",
@@ -94,7 +86,12 @@ public class RefreshTokenController {
             @ApiResponse(responseCode = "404", ref = "User not found")
     })
     @PostMapping("/logout-all")
-    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(@AuthenticationPrincipal UserEntity user) {
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UserEntity user = springUserRepository.findByEmail(userDetails.getUsername())
+                        .orElseThrow(() -> new NotFoundException("User not found"));
+
         refreshTokenService.revokeByUserId(user.getId());
         return ApiResponseFactory.success(null, "Successful global logout");
     }

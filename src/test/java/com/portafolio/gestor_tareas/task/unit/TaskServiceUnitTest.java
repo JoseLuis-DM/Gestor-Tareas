@@ -10,8 +10,6 @@ import com.portafolio.gestor_tareas.task.domain.TaskRepository;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
-import com.portafolio.gestor_tareas.users.domain.Role;
-import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,12 +18,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import javax.swing.text.html.Option;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,7 +29,7 @@ import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
-public class TaskServiceUnitTest {
+class TaskServiceUnitTest {
 
     @Mock
     private TaskRepository taskRepository;

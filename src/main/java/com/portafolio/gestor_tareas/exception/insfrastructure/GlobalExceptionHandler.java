@@ -19,23 +19,6 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // NotFoundException → HTTP 404
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ApiError> handleNotFound(NotFoundException e, HttpServletRequest request) {
-
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
-
-        ApiError apiError = ApiError.builder()
-                .status(HttpStatus.NOT_FOUND.value())
-                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                .path(request.getRequestURI())
-                .timestamp(LocalDateTime.now())
-                .errors(errors)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
-    }
-
     // Validation errors -> HTTP 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
@@ -89,6 +72,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiError);
     }
 
+    // RefreshTokenExpiredException -> HTTP 401
+    @ExceptionHandler(RefreshTokenExpiredException.class)
+    public ResponseEntity<ApiError> handleUnauthorized(RefreshTokenExpiredException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiError);
+    }
+
     // Forbidden -> HTTP 403
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiError> handleAccessDenied(ForbiddenException e, HttpServletRequest request) {
@@ -121,6 +121,54 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
     }
 
+    // RefreshTokenRevoked -> HTTP 403
+    @ExceptionHandler(RefreshTokenRevokedException.class)
+    public ResponseEntity<ApiError> handleRefreshTokenRevoked(RefreshTokenRevokedException e, HttpServletRequest request) {
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.FORBIDDEN.value())
+                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(List.of("Forbidden"))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiError);
+    }
+
+    // NotFoundException → HTTP 404
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(NotFoundException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
+    }
+
+    // RefreshTokenNotFoundException → HTTP 404
+    @ExceptionHandler(RefreshTokenNotFoundException.class)
+    public ResponseEntity<ApiError> handleRefreshTokenNotFound(RefreshTokenNotFoundException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiError);
+    }
 
     // Conflict UserAlreadyExist -> HTTP 409
     @ExceptionHandler(UserAlreadyExistsException.class)

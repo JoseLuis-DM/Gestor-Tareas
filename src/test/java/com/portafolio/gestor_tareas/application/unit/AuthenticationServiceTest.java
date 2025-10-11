@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
-public class AuthenticationServiceTest {
+class AuthenticationServiceTest {
 
     @Autowired
     private AuthenticationService authenticationService;
@@ -38,6 +38,8 @@ public class AuthenticationServiceTest {
     private UserMapper userMapper;
 
     private final String testEmail = "medinadomluis@gmail.com";
+
+    private UserEntity userEntity;
 
     @BeforeEach
     void setUp() {
@@ -58,7 +60,7 @@ public class AuthenticationServiceTest {
 
         authenticationService.register(user);
 
-        UserEntity userEntity = userRepository.findByEmail(testEmail).orElseThrow();
+        userEntity = userRepository.findByEmail(testEmail).orElseThrow();
         assertEquals("Luis", user.getFirstname(), "The name must match");
         assertEquals("Medina", user.getLastname(), "The last name must match");
 
@@ -89,7 +91,7 @@ public class AuthenticationServiceTest {
         assertNotNull(response.getAccessToken(), "The access token must not be null");
         assertNotNull(response.getRefreshToken(), "The refresh token must not be null");
 
-        UserEntity userEntity = userRepository.findByEmail(testEmail).orElseThrow();
+        userEntity = userRepository.findByEmail(testEmail).orElseThrow();
         assertTrue(jwtService.isTokenValid(response.getAccessToken(), userEntity), "The token must be valid for the user");
     }
 
@@ -113,5 +115,25 @@ public class AuthenticationServiceTest {
         );
 
         assertThrows(RuntimeException.class, () -> authenticationService.authenticate(authRequest), "Should throw exception for incorrect password");
+    }
+
+    @Test
+    void testRegisterAdminSuccessfully() {
+
+        RegisterRequest request = new RegisterRequest(
+                "Luis",
+                "Medina",
+                testEmail,
+                "123456"
+        );
+
+        authenticationService.registerAdmin(request);
+
+        userEntity = userRepository.findByEmail(testEmail).orElseThrow();
+
+        assertEquals("Luis", userEntity.getFirstname(), "The name must match");
+        assertEquals("Medina", userEntity.getLastname(), "The last name must match");
+
+        assertTrue(passwordEncoder.matches("123456", userEntity.getPassword()), "The password must match after encryption");
     }
 }
