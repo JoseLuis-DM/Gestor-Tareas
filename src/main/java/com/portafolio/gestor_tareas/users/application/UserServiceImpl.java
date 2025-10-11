@@ -7,12 +7,8 @@ import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.domain.UserService;
-import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
-import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
-import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -22,6 +18,10 @@ import java.util.*;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+
+    private static String notFound = "User not found";
+
+    private User user;
 
     @Override
     public User register(User user) {
@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User update(User user) {
         User updateUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> new NotFoundException(notFound));
 
         if (!updateUser.getEmail().equals(user.getEmail()) &&
                 userRepository.existsEmail(user.getEmail())) {
@@ -69,21 +69,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(Long id) {
 
-        User user = userRepository.findById(id)
+        user = userRepository.findById(id)
                         .orElseThrow(() -> new NotFoundException("The user does not exist"));
         userRepository.deleteById(id);
     }
 
     @Transactional
     public void addPermissions(Long userId, String email, Set<Permission> permissions) {
-        User user;
 
         if (userId != null) {
             user = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException("User not found"));
+                    .orElseThrow(() -> new NotFoundException(notFound));
         } else if (email != null) {
             user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new NotFoundException("User not found"));
+                    .orElseThrow(() -> new NotFoundException(notFound));
         } else {
             throw new BadRequestException("UserId or email must be provided");
         }

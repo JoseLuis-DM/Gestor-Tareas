@@ -16,8 +16,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.swing.*;
-
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -35,13 +33,16 @@ public class AuthenticationService {
             throw new IllegalArgumentException("User already exists");
         }
 
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
+
         User saved = userRepository.save(user);
+
         UserEntity userEntity = userMapper.userToUserEntity(saved);
+
         String jwtToken = jwtService.generateToken(userEntity);
         String refreshToken = refreshTokenService.createRefreshToken(saved.getId()).getToken();
+
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .refreshToken(refreshToken)

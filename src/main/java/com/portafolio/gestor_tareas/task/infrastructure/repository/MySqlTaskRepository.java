@@ -5,7 +5,6 @@ import com.portafolio.gestor_tareas.task.domain.TaskRepository;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

@@ -3,12 +3,9 @@ package com.portafolio.gestor_tareas.task.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portafolio.gestor_tareas.config.TestTaskFactory;
 import com.portafolio.gestor_tareas.config.TestUserFactory;
-import com.portafolio.gestor_tareas.task.domain.Task;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
-import com.portafolio.gestor_tareas.users.domain.Role;
-import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
@@ -22,9 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -32,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-public class TaskControllerIntegrationTest {
+class TaskControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

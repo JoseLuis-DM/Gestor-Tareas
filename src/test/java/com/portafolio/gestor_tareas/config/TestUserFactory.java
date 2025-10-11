@@ -2,17 +2,14 @@ package com.portafolio.gestor_tareas.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.portafolio.gestor_tareas.auth.application.RefreshTokenService;
+import com.portafolio.gestor_tareas.auth.domain.RefreshToken;
 import com.portafolio.gestor_tareas.auth.infrastructure.AuthenticationRequest;
-import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
-import com.portafolio.gestor_tareas.config.application.JwtService;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
-import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +29,7 @@ public class TestUserFactory {
     private final ObjectMapper objectMapper;
     private final SpringUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     // Constructor con @Autowired required = false para MockMvc
     @Autowired
@@ -39,12 +37,14 @@ public class TestUserFactory {
             @Autowired(required = false) MockMvc mockMvc,
             ObjectMapper objectMapper,
             SpringUserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            RefreshTokenService refreshTokenService
     ) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.refreshTokenService = refreshTokenService;
     }
 
     public TestUser createRegularUser() throws Exception {
@@ -139,18 +139,26 @@ public class TestUserFactory {
             }
         }
 
-        return new TestUser(email, bearerToken);
+        UserEntity userEntity = userRepository.findByEmail(email).orElseThrow();
+
+        RefreshToken refreshTokenEntity = refreshTokenService.createRefreshToken(userEntity.getId());
+
+        String refreshToken = refreshTokenEntity.getToken();
+
+        return new TestUser(email, bearerToken, refreshToken);
     }
 
     public static class TestUser {
 
         private final String email;
         private final String token;
+        private final String refreshToken;
 
-        public TestUser(String email, String token) {
+        public TestUser(String email, String token, String refreshToken) {
 
             this.email = email;
             this.token = token;
+            this.refreshToken = refreshToken;
         }
 
         public String getEmail() {
@@ -159,6 +167,10 @@ public class TestUserFactory {
 
         public String getToken() {
             return token;
+        }
+
+        public String getRefreshToken() {
+            return refreshToken;
         }
     }
 }

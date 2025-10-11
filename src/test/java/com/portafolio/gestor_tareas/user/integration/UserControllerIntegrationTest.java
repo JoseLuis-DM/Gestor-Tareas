@@ -255,7 +255,8 @@ public class UserControllerIntegrationTest {
     @Test
     void shouldAdminGetUserByIdSuccessfully() throws Exception {
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}", 1L)
+        Long userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}", userId)
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());

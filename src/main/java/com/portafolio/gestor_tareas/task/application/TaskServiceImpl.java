@@ -8,17 +8,12 @@ import com.portafolio.gestor_tareas.task.domain.TaskRepository;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
-import com.portafolio.gestor_tareas.users.domain.Role;
-import com.portafolio.gestor_tareas.users.domain.User;
-import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +28,8 @@ public class TaskServiceImpl implements TaskService {
     private final SpringUserRepository userRepository;
     private final SecurityConfig securityConfig;
 
+    private UserEntity user;
+
     @Override
     @Transactional
     public Task save(Task task, Long userId) {
@@ -42,7 +39,7 @@ public class TaskServiceImpl implements TaskService {
             throw new TaskAlreadyExistException("The task already exists");
         }
 
-        UserEntity user = userRepository.findById(userId)
+        user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
         task.setUser(user);
 
@@ -55,7 +52,7 @@ public class TaskServiceImpl implements TaskService {
         Task updateTask = taskRepository.findById(task.getId())
                 .orElseThrow(() -> new NotFoundException("Task not found"));
 
-        UserEntity user = userRepository.findById(userId)
+        user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         securityConfig.checkAccess(updateTask.getUser().getId(), userDetails);

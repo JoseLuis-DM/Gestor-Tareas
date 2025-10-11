@@ -2,7 +2,6 @@ package com.portafolio.gestor_tareas.users.infrastructure.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
-import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import jakarta.persistence.EnumType;
