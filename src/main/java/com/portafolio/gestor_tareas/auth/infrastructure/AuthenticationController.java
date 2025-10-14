@@ -31,7 +31,11 @@ public class AuthenticationController {
             description = "Create a new user in the system with the data provided.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User successfully registered"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidJson"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/UserAlreadyExists"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> register(@RequestBody RegisterRequest request) {
@@ -44,7 +48,10 @@ public class AuthenticationController {
             description = "Generates a JWT token for the user if the credentials are correct.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User successfully authenticate", content = @Content),
-            @ApiResponse(responseCode = "401", ref = "Unauthorized", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping("/authenticate")
     public ResponseEntity<ApiResponseDTO<AuthenticationResponse>> authenticate(@RequestBody AuthenticationRequest request) {
@@ -58,7 +65,11 @@ public class AuthenticationController {
             description = "Creates a new admin in the system")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Admin created successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/UserAlreadyExists"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create-admin")

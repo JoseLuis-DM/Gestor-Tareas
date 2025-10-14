@@ -1,6 +1,7 @@
 package com.portafolio.gestor_tareas.task.application;
 
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
+import com.portafolio.gestor_tareas.exception.domain.InvalidTaskCompleteException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.exception.domain.TaskAlreadyExistException;
 import com.portafolio.gestor_tareas.task.domain.Task;
@@ -29,6 +30,7 @@ public class TaskServiceImpl implements TaskService {
     private final SecurityConfig securityConfig;
 
     private UserEntity user;
+    private Task task;
 
     @Override
     @Transactional
@@ -76,11 +78,34 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void delete(Long id, UserDetails userDetails) {
-        Task task = taskRepository.findById(id)
+         task = taskRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The task does not exist"));
 
         securityConfig.checkAccess(task.getUser().getId(), userDetails);
 
         taskRepository.deleteById(id);
+    }
+
+    @Override
+    public void updateCompletionStatus(Long id, boolean complete, UserDetails userDetails) {
+
+        task = taskRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("The task does not exist"));
+
+        securityConfig.checkAccess(task.getUser().getId(), userDetails);
+
+        if (complete) {
+            if (task.isCompleted()) {
+                throw new InvalidTaskCompleteException("The task is already completed");
+            }
+            task.setCompleted(true);
+        } else {
+            if (!task.isCompleted()) {
+                throw new InvalidTaskCompleteException("The task is not complete, it cannot be marked as not completed");
+            }
+            task.setCompleted(false);
+        }
+
+        taskRepository.save(task);
     }
 }

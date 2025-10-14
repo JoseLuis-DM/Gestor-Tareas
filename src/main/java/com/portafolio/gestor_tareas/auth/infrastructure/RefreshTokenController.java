@@ -8,6 +8,7 @@ import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -55,7 +56,10 @@ public class RefreshTokenController {
             description = "Generates a new access token from a valid refresh token.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Token successfully renewed"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
@@ -71,7 +75,9 @@ public class RefreshTokenController {
             description = "Deletes only the current refresh token (logout on a device).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Logout successful"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logout(@RequestBody RefreshTokenRequest request) {
@@ -83,7 +89,9 @@ public class RefreshTokenController {
             description = "Deletes all refresh tokens associated with the user.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successful global logout"),
-            @ApiResponse(responseCode = "404", ref = "User not found")
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(

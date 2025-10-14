@@ -44,8 +44,12 @@ public class TaskControllerImpl implements TaskController{
             description = "Creates a new task in the system")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Task created successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content),
-            @ApiResponse(responseCode = "409", ref = "TaskAlreadyExistException")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidJson"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/TaskAlreadyExists"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PostMapping
@@ -62,9 +66,12 @@ public class TaskControllerImpl implements TaskController{
             description = "Updates task details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Task updated successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidJson"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PutMapping
@@ -84,8 +91,10 @@ public class TaskControllerImpl implements TaskController{
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Task found"),
             @ApiResponse(responseCode = "204", description = "No content"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping("/{id}")
@@ -107,8 +116,8 @@ public class TaskControllerImpl implements TaskController{
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Tasks found"),
             @ApiResponse(responseCode = "204", description = "No content"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping
@@ -132,8 +141,10 @@ public class TaskControllerImpl implements TaskController{
             description = "Deletes a task by their ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Task deleted"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasAuthority('TASK_DELETE')")
     @DeleteMapping("/{id}")
@@ -144,5 +155,27 @@ public class TaskControllerImpl implements TaskController{
         taskService.delete(id, userDetails);
 
         return ApiResponseFactory.success(null, "Task deleted");
+    }
+
+    @Operation(summary = "Update task status by its ID",
+            description = "Update the completion status of a task by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Task updated"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/InvalidTaskComplete"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasAuthority('TASK_WRITE')")
+    @PatchMapping("/{id}/complete")
+    public ResponseEntity<ApiResponseDTO<Void>> updateCompletionStatus(
+            @PathVariable Long id,
+            @RequestParam boolean completed,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        taskService.updateCompletionStatus(id, completed, userDetails);
+        String msg = completed ? "Task marked as completed" : "Task marked as not completed";
+        return ApiResponseFactory.success(null, msg);
     }
 }

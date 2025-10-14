@@ -18,4 +18,6 @@ public interface TaskController {
     ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll(UserDetails userDetails);
 
     ResponseEntity<ApiResponseDTO<Void>> deleteById(Long id, UserDetails userDetails);
+
+    ResponseEntity<ApiResponseDTO<Void>> updateCompletionStatus(Long id, boolean completed, UserDetails userDetails);
 }

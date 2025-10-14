@@ -51,6 +51,8 @@ class TaskControllerIntegrationTest {
     private TestUserFactory.TestUser userWithoutPermission;
     private UserEntity userEntity;
 
+    private Long taskId;
+
     @BeforeEach
     void setUp() throws Exception {
 
@@ -167,7 +169,7 @@ class TaskControllerIntegrationTest {
     @Test
     void adminUpdateAnyTask() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task to update");
+        taskId = createTaskAndGetId(userEntity, "Task to update");
 
         TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", false);
 
@@ -195,7 +197,7 @@ class TaskControllerIntegrationTest {
                 .orElseThrow()
                 .getId();
 
-        Long taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
+        taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
                 .orElseThrow()
                 .getId();
 
@@ -213,7 +215,7 @@ class TaskControllerIntegrationTest {
     @Test
     void userCannotUpdateOtherTaskThatNotHis() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", false);
 
@@ -241,7 +243,7 @@ class TaskControllerIntegrationTest {
     @Test
     void updateInvalidDataShouldReturnBadRequest() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         TaskDTO task = createTaskDTOWithId(taskId, null, null, false);
 
@@ -260,7 +262,7 @@ class TaskControllerIntegrationTest {
     @Test
     void adminCanDeleteTask() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/{id}", taskId)
                         .header("Authorization", adminUser.getToken())
@@ -284,7 +286,7 @@ class TaskControllerIntegrationTest {
                 .orElseThrow()
                 .getId();
 
-        Long taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
+        taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
                 .orElseThrow()
                 .getId();
 
@@ -298,7 +300,7 @@ class TaskControllerIntegrationTest {
     @Test
     void userCannotDeleteOtherTaskThatNotHis() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/{id}", taskId)
                         .header("Authorization", regularUser.getToken())
@@ -324,7 +326,7 @@ class TaskControllerIntegrationTest {
     @Test
     void shouldAdminGetTaskByIdSuccessfully() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task/{id}", taskId)
                         .header("Authorization", adminUser.getToken())
@@ -348,7 +350,7 @@ class TaskControllerIntegrationTest {
                 .orElseThrow()
                 .getId();
 
-        Long taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
+        taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
                 .orElseThrow()
                 .getId();
 
@@ -360,7 +362,7 @@ class TaskControllerIntegrationTest {
 
     // Integration test that verifies that an admin cannot find a task who does not exist
     @Test
-    void shouldReturnNotFoundForNonexistentTask() throws Exception {
+    void shouldReturnNotFoundForNonExistentTask() throws Exception {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task/{id}", 999L)
                         .header("Authorization", adminUser.getToken())
@@ -372,7 +374,7 @@ class TaskControllerIntegrationTest {
     @Test
     void userCannotFindOtherTaskThatNotHis() throws Exception {
 
-        Long taskId = createTaskAndGetId(userEntity, "Task");
+        taskId = createTaskAndGetId(userEntity, "Task");
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/task/{id}", taskId)
                         .header("Authorization", regularUser.getToken())
@@ -402,5 +404,46 @@ class TaskControllerIntegrationTest {
                         .header("Authorization", regularUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    /*
+        updateCompletionStatus (PATCH)
+    */
+
+    // Test where an administrator updates the completion of a task
+    @Test
+    void adminUpdateCompleteAnyTask() throws Exception {
+
+        taskId = createTaskAndGetId(userEntity, "Task");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/{id}/complete", taskId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("completed", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    // Test where you try to update a task that does not exist
+    @Test
+    void shouldReturnNotFoundForNonExistTask() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/{id}/complete", 99L)
+                        .header("Authorization", adminUser.getToken())
+                        .param("completed", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    // Test where it attempts to update to not completed but is not yet completed
+    @Test
+    void shouldReturnConflictDueStatusError() throws Exception {
+
+        taskId = createTaskAndGetId(userEntity, "Task");
+
+        mockMvc.perform(MockMvcRequestBuilders.patch("/api/task/{id}/complete", taskId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("completed", "false")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict());
     }
 }

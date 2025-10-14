@@ -30,7 +30,7 @@ public class TaskEntity extends Auditable {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    // (Equals y hashcode) evita problemas con relaciones bidireccionales al solo usar el id
+    // (Equals y hashcode) avoids problems with bidirectional relationships by only using the id
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

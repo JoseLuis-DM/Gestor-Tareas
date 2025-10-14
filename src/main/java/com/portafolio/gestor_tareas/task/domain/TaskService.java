@@ -16,4 +16,6 @@ public interface TaskService {
     List<Task> findAll();
 
     void delete(Long id, UserDetails userDetails);
+
+    void updateCompletionStatus(Long id, boolean complete, UserDetails userDetails);
 }
