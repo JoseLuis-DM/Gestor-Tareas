@@ -106,7 +106,7 @@ public class UserEntity extends Auditable implements UserDetails {
         return true;
     }
 
-    // (Equals y hashcode) evita probelmas con relaciones bidireccionales al solo usar el id
+    // (Equals y hashcode) avoids problems with bidirectional relationships by only using the id
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

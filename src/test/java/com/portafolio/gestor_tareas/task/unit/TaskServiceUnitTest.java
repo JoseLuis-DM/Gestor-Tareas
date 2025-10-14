@@ -2,6 +2,7 @@ package com.portafolio.gestor_tareas.task.unit;
 
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
 import com.portafolio.gestor_tareas.exception.domain.ForbiddenException;
+import com.portafolio.gestor_tareas.exception.domain.InvalidTaskCompleteException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.exception.domain.TaskAlreadyExistException;
 import com.portafolio.gestor_tareas.task.application.TaskServiceImpl;
@@ -276,5 +277,51 @@ class TaskServiceUnitTest {
 
         verify(taskRepository, times(1)).findById(99L);
         verify(taskRepository, never()).deleteById(any());
+    }
+
+    /*
+        updateCompletionStatus (PATCH)
+    */
+
+    // Field update completed successfully
+    @Test
+    void shouldUpdatedCompleteTaskSuccessfully() {
+
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(inputTask));
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        taskService.updateCompletionStatus(1L, true, userDetails);
+
+        verify(taskRepository, times(1)).findById(1L);
+        verify(taskRepository, times(1)).save(inputTask);
+    }
+
+    // Test that attempts to update the completion status of a non-existent task
+    @Test
+    void shouldThrowExceptionWhenTaskNoExist() {
+
+        when(taskRepository.findById(99L)).thenReturn(Optional.empty());
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        assertThrows(NotFoundException.class, () -> taskService.updateCompletionStatus(99L, true, userDetails));
+
+        verify(taskRepository, times(1)).findById(99L);
+        verify(taskRepository, never()).save(any());
+    }
+
+    // Test where an attempt is made to update a completed task to completed
+    @Test
+    void shouldThrowExceptionWhenTaskIsNotComplete() {
+
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(inputTask));
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        assertThrows(InvalidTaskCompleteException.class, () -> taskService.updateCompletionStatus(1L, false, userDetails));
+
+        verify(taskRepository, times(1)).findById(1L);
+        verify(taskRepository, never()).save(any());
     }
 }

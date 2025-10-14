@@ -41,7 +41,11 @@ public class UserControllerImpl implements UserController{
             description = "Creates a new user in the system")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "User created successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/InvalidJson"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/UserAlreadyExists"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping
     public ResponseEntity<ApiResponseDTO<UserDTO>> register(
@@ -60,9 +64,11 @@ public class UserControllerImpl implements UserController{
             description = "Updates user details")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User updated successfully"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/ValidationError"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PutMapping
     public ResponseEntity<ApiResponseDTO<UserDTO>> update(
@@ -85,8 +91,10 @@ public class UserControllerImpl implements UserController{
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User found"),
             @ApiResponse(responseCode = "204", description = "No content"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponseDTO<UserDTO>> findById(
@@ -108,8 +116,8 @@ public class UserControllerImpl implements UserController{
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users found"),
             @ApiResponse(responseCode = "204", description = "No content"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
@@ -125,8 +133,10 @@ public class UserControllerImpl implements UserController{
             description = "Deletes a user by their ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "User deleted"),
-            @ApiResponse(responseCode = "403", ref = "Forbidden"),
-            @ApiResponse(responseCode = "404", ref = "NotFound")
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
@@ -143,7 +153,10 @@ public class UserControllerImpl implements UserController{
             description = "Aggregation of permissions in the user by ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Added permits correctly"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/permissions")
@@ -160,7 +173,10 @@ public class UserControllerImpl implements UserController{
             description = "Aggregation of permissions in the user by email")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Added permits correctly"),
-            @ApiResponse(responseCode = "400", ref = "BadRequest", content = @Content)
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/email/{email}/permissions")

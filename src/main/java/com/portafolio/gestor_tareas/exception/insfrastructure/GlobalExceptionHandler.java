@@ -19,6 +19,8 @@ import java.util.List;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String DEFAULT_ERROR_MESSAGE = "Unexpected error";
+
     // Validation errors -> HTTP 400
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException e, HttpServletRequest request) {
@@ -45,7 +47,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequest(BadRequestException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -76,7 +78,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RefreshTokenExpiredException.class)
     public ResponseEntity<ApiError> handleUnauthorized(RefreshTokenExpiredException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.UNAUTHORIZED.value())
@@ -93,7 +95,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiError> handleAccessDenied(ForbiddenException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.FORBIDDEN.value())
@@ -140,7 +142,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFound(NotFoundException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.NOT_FOUND.value())
@@ -157,7 +159,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RefreshTokenNotFoundException.class)
     public ResponseEntity<ApiError> handleRefreshTokenNotFound(RefreshTokenNotFoundException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.NOT_FOUND.value())
@@ -174,7 +176,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ApiError> handleUserAlreadyExists(UserAlreadyExistsException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.CONFLICT.value())
@@ -191,7 +193,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TaskAlreadyExistException.class)
     public ResponseEntity<ApiError> handleTaskAlreadyExists(TaskAlreadyExistException e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
+    }
+
+    // Conflict InvalidTaskCompletedException -> HTTP 409
+    @ExceptionHandler(InvalidTaskCompleteException.class)
+    public ResponseEntity<ApiError> handleTaskAlreadyCompleted(InvalidTaskCompleteException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.CONFLICT.value())
@@ -208,7 +227,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception e, HttpServletRequest request) {
 
-        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : "Unexpected error");
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
 
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
