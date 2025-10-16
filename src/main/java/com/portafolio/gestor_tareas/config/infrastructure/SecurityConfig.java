@@ -9,6 +9,7 @@ import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRe
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -76,6 +77,14 @@ public class SecurityConfig {
 
         if (!user.getEmail().equals(email)) {
             throw new ForbiddenException("Forbidden");
+        }
+    }
+
+    public void checkAdminAccess(UserDetails userDetails) {
+
+        if (userDetails == null || !userDetails.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new AccessDeniedException("Access denied: ADMIN role required");
         }
     }
 }

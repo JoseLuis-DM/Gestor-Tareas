@@ -1,36 +1,51 @@
 package com.portafolio.gestor_tareas.user.unit;
 
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
+import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
+import com.portafolio.gestor_tareas.exception.domain.BadRequestException;
+import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.application.UserServiceImpl;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
-import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
-import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class UserServiceUnitTest {
+class UserServiceUnitTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private SecurityConfig securityConfig;
+
+    @Mock
+    private UserMapper userMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
 
     private User inputUser;
     private Set<Permission> newPermissions;
+    private User userWithPermissions;
+    private User userWithTwoPermissions;
 
     @BeforeEach
     void setUp() {
@@ -47,6 +62,36 @@ public class UserServiceUnitTest {
         );
 
         newPermissions = new HashSet<>(Set.of(Permission.TASK_READ, Permission.TASK_WRITE));
+
+        userWithPermissions = new User(
+                2L,
+                "Test User",
+                "Example User",
+                "testuser@example.com",
+                "654321",
+                Role.USER,
+                new HashSet<>(Arrays.asList(
+                        Permission.TASK_WRITE,
+                        Permission.TASK_READ,
+                        Permission.TASK_ASSIGN,
+                        Permission.TASK_DELETE
+                )),
+                new ArrayList<>()
+        );
+
+        userWithTwoPermissions = new User(
+                3L,
+                "User Test",
+                "User Example",
+                "usertest@example.com",
+                "321123",
+                Role.USER,
+                new HashSet<>(Arrays.asList(
+                        Permission.TASK_WRITE,
+                        Permission.TASK_READ
+                )),
+                new ArrayList<>()
+        );
     }
 
     /*
@@ -229,5 +274,222 @@ public class UserServiceUnitTest {
         verify(userRepository, never()).findById(anyLong());
         verify(userRepository, never()).findByEmail(anyString());
         verify(userRepository, never()).save(any());
+    }
+
+    /*
+        DELETE PERMISSIONS
+    */
+
+    // Test where all permissions are removed from a user
+    @Test
+    void shouldDeleteAllPermissionsByUserIdSuccessfully() {
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(userWithPermissions));
+        when(userRepository.save(any(User.class))).thenReturn(userWithPermissions);
+
+        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+                userService.deletePermissions(2L, null, true, null);
+
+        verify(userRepository, times(1)).findById(2L);
+        verify(userRepository, times(1)).save(userWithPermissions);
+
+        assertThat(userWithPermissions.getPermissions()).isNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("All permissions removed successfully");
+        assertThat(response.getBody().getData()).isNull();
+    }
+
+    // Test where permissions are removed from a user based on their userId
+    @Test
+    void shouldDeletePermissionsByUserIdSuccessfully() {
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(userWithPermissions));
+        when(userRepository.save(any(User.class))).thenReturn(userWithPermissions);
+
+        Set<Permission> permissions = new HashSet<>(Arrays.asList(
+                Permission.TASK_WRITE,
+                Permission.TASK_READ
+        ));
+
+        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+                userService.deletePermissions(2L, null, false, permissions);
+
+        verify(userRepository, times(1)).findById(2L);
+        verify(userRepository, times(1)).save(userWithPermissions);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Permissions removed successfully");
+        assertThat(response.getBody().getData()).isNotNull();
+        assertThat(response.getBody().getData().get("removed")).isEqualTo(permissions);
+    }
+
+    // Test where permissions are removed from a user based on their email
+    @Test
+    void shouldDeletePermissionsByEmailSuccessfully() {
+
+        when(userRepository.findByEmail("testuser@example.com")).thenReturn(Optional.of(userWithPermissions));
+        when(userRepository.save(any(User.class))).thenReturn(userWithPermissions);
+
+        Set<Permission> permissions = new HashSet<>(Arrays.asList(
+                Permission.TASK_DELETE,
+                Permission.TASK_WRITE
+        ));
+
+        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+                userService.deletePermissions(null, "testuser@example.com", false, permissions);
+
+        verify(userRepository, times(1)).findByEmail("testuser@example.com");
+        verify(userRepository, times(1)).save(userWithPermissions);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Permissions removed successfully");
+        assertThat(response.getBody().getData()).isNotNull();
+        assertThat(response.getBody().getData().get("removed")).isEqualTo(permissions);
+    }
+
+    // Test where permissions are removed from a user who did not have some permissions
+    @Test
+    void shouldReturnWarningForPermissionsUsersDoesNotHave() {
+
+        when(userRepository.findById(3L)).thenReturn(Optional.of(userWithTwoPermissions));
+        when(userRepository.save(any(User.class))).thenReturn(userWithTwoPermissions);
+
+        Set<Permission> permissions = new HashSet<>(Arrays.asList(
+                Permission.TASK_DELETE,
+                Permission.TASK_WRITE
+        ));
+
+        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+                userService.deletePermissions(3L, null, false, permissions);
+
+        verify(userRepository, times(1)).findById(3L);
+        verify(userRepository, times(1)).save(userWithTwoPermissions);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Some permissions were not found for this user");
+        assertThat(response.getBody().getData()).isNotNull();
+    }
+
+    // Test where an attempt was made to remove permissions from a user that does not exist
+    @Test
+    void shouldReturnNotFoundBecauseNotExistUser() {
+
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        Set<Permission> permissions = new HashSet<>(Arrays.asList(
+                Permission.TASK_DELETE,
+                Permission.TASK_WRITE
+        ));
+
+        assertThrows(NotFoundException.class,
+                () -> userService.deletePermissions(99L, null, false, permissions));
+
+        verify(userRepository, times(1)).findById(99L);
+        verify(userRepository, never()).save(any());
+    }
+
+    // Test where an attempt was made to remove permissions from a user but with a bad request
+    @Test
+    void shouldReturnBadRequestDataNotProvided() {
+
+        Set<Permission> permissions = new HashSet<>(Arrays.asList(
+                Permission.TASK_DELETE,
+                Permission.TASK_WRITE
+        ));
+
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> userService.deletePermissions(null, null, false, permissions));
+
+        assertThat(exception.getMessage()).isEqualTo("Bad request exception. UserId or email must be provided");
+    }
+
+    /*
+        SHOW PERMISSIONS
+    */
+
+    // Test that validates that a user's permissions were found
+    @Test
+    void shouldShowPermissionsSuccessfully() {
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(userWithPermissions));
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+
+        List<Permission> permissions = userService.showPermissions(2L, userDetails);
+
+        assertNotNull(permissions);
+        assertFalse(permissions.isEmpty());
+        assertEquals(userWithPermissions.getPermissions().size(), permissions.size());
+
+        verify(userRepository, times(1)).findById(2L);
+    }
+
+    // Test that validates that a user's permissions are displayed even if they are 0
+    @Test
+    void shouldShowEmptyPermissionsSuccessfully() {
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(inputUser));
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+
+        List<Permission> permissions = userService.showPermissions(1L, userDetails);
+
+        assertTrue(permissions.isEmpty());
+        assertThat(0).isZero();
+
+        verify(userRepository, times(1)).findById(1L);
+    }
+
+    /*
+        SHOW ALL USERS WITH PERMISSIONS
+    */
+
+    // Test that validates that the users with their permissions were found
+    @Test
+    void shouldShowAllUsersWithPermissionsSuccessfully() {
+
+        UserWithPermissionsDTO dto = new UserWithPermissionsDTO();
+        dto.setFirstname("Admin");
+        dto.setEmail("admin@test.com");
+        dto.setPermissions(Set.of(Permission.TASK_READ, Permission.TASK_WRITE));
+
+        when(userRepository.findAll()).thenReturn(List.of(userWithPermissions));
+        when(userMapper.userToUserWithPermissionsDTOs(List.of(userWithPermissions))).thenReturn(List.of(dto));
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> response =
+                userService.showAllUsersWithPermissions(userDetails);
+
+        verify(securityConfig).checkAdminAccess(userDetails);
+        verify(userRepository).findAll();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Users with permissions found");
+    }
+
+    // Test that validates that there are no users with their permissions
+    @Test
+    void shouldShowEmptyUsersWithPermissions() {
+
+        UserDetails userDetails = mock(UserDetails.class);
+
+        ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> response =
+                userService.showAllUsersWithPermissions(userDetails);
+
+        verify(securityConfig).checkAdminAccess(userDetails);
+        verify(userRepository).findAll();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(response.getBody().getMessage()).isEqualTo("No users with assigned permissions were found");
     }
 }

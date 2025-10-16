@@ -1,5 +1,7 @@
 package com.portafolio.gestor_tareas.users.domain;
 
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -16,5 +18,4 @@ public interface UserRepository {
     Boolean existsEmail(String email);
 
     void deleteById(Long id);
-
 }

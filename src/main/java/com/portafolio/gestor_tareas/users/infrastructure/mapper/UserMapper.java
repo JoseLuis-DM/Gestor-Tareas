@@ -3,14 +3,14 @@ package com.portafolio.gestor_tareas.users.infrastructure.mapper;
 import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.*;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, builder = @Builder(disableBuilder = true))
 public interface UserMapper {
@@ -44,6 +44,9 @@ public interface UserMapper {
         return user;
     }
 
-
     User registerRequestToUser(RegisterRequest registerRequest);
+
+    UserWithPermissionsDTO userToUserWithPermissionsDTO(User user);
+
+    List<UserWithPermissionsDTO> userToUserWithPermissionsDTOs(List<User> users);
 }

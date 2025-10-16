@@ -223,6 +223,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
     }
 
+    // Conflict UserDontHavePermissions -> HTTP 409
+    @ExceptionHandler(UserDontHavePermissionsException.class)
+    public ResponseEntity<ApiError> handleUserDontHavePermissions(UserDontHavePermissionsException e, HttpServletRequest request) {
+
+        List<String> errors = List.of(e.getMessage() != null ? e.getMessage() : DEFAULT_ERROR_MESSAGE);
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .path(request.getRequestURI())
+                .timestamp(LocalDateTime.now())
+                .errors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(apiError);
+    }
+
     // Exception -> 500
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception e, HttpServletRequest request) {

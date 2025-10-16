@@ -105,7 +105,8 @@ public class OpenAPIConfig {
                                                                         "Unauthorized",
                                                                         DATE,
                                                                         "/api/auth/refresh",
-                                                                        List.of("RefreshToken expired. Please log in again")
+                                                                        List.of("RefreshToken expired." +
+                                                                                " Please log in again")
                                                                 )
                                                         ))
                                                 ))
@@ -120,7 +121,8 @@ public class OpenAPIConfig {
                                                                         "Forbidden",
                                                                         DATE,
                                                                         "/api/task",
-                                                                        List.of("You don't have permission to access this resource")
+                                                                        List.of("You don't have permission to access" +
+                                                                                " this resource")
                                                                 )
                                                         ))
                                                 ))
@@ -225,10 +227,27 @@ public class OpenAPIConfig {
                                                                         "Conflict",
                                                                         DATE,
                                                                         "/api/task/1/complete",
-                                                                        List.of("Invalid task completion status. The task is already completed")
+                                                                        List.of("Invalid task completion status. " +
+                                                                                "The task is already completed")
                                                                 )
                                                         ))
                                                 ))
+                                // UserDontHavePermissionsException -> 409
+                                .addResponses("UserDontHavePermissions",
+                                        new ApiResponse()
+                                                .description("Conflict - User does not have any permissions")
+                                                .content(new Content().addMediaType(JSON,
+                                                        new MediaType().example(
+                                                                builderExample(
+                                                                        409,
+                                                                        "Conflict",
+                                                                        DATE,
+                                                                        "/api/user/{id}/permissions",
+                                                                        List.of("User does not have any permissions." +
+                                                                                " The user does not have permissions")
+                                                        )
+                                                ))
+                                        ))
                                 // Internal Server Error - 500
                                 .addResponses("InternalError",
                                         new ApiResponse()
@@ -240,7 +259,8 @@ public class OpenAPIConfig {
                                                                         "Internal Server Error",
                                                                         DATE,
                                                                         "/api/task",
-                                                                        List.of("An unexpected error occurred. Please try again later")
+                                                                        List.of("An unexpected error occurred. " +
+                                                                                "Please try again later")
                                                                 )
                                                         ))
                                                 )
