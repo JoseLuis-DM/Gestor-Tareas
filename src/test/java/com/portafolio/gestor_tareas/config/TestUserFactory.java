@@ -75,6 +75,20 @@ public class TestUserFactory {
         );
     }
 
+    public TestUser createUserWithTwoPermissions() throws Exception {
+
+        return registerAndAuthenticate(
+                "testuser@test.com",
+                "654321",
+                "Example",
+                "User",
+                Role.USER,
+                new ArrayList<>(),
+                false,
+                true
+        );
+    }
+
     public TestUser createAdminUser() throws Exception {
 
         return registerAndAuthenticate(
@@ -107,12 +121,20 @@ public class TestUserFactory {
             user.setRole(role);
 
             if (withPermission) {
-                user.setPermissions(new HashSet<>(Arrays.asList(
-                        Permission.TASK_WRITE,
-                        Permission.TASK_READ,
-                        Permission.TASK_ASSIGN,
-                        Permission.TASK_DELETE
-                )));
+                if (user.getEmail().equals("testuser@test.com")) {
+                    user.setPermissions(new HashSet<>(Arrays.asList(
+                            Permission.TASK_WRITE,
+                            Permission.TASK_READ
+                    )));
+                } else {
+                    user.setPermissions(new HashSet<>(Arrays.asList(
+                            Permission.TASK_WRITE,
+                            Permission.TASK_READ,
+                            Permission.TASK_ASSIGN,
+                            Permission.TASK_DELETE
+                    )));
+                }
+
             }
 
             userRepository.save(user);

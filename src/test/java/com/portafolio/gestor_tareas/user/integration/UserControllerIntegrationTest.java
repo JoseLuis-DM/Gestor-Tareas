@@ -1,13 +1,9 @@
 package com.portafolio.gestor_tareas.user.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
 import com.portafolio.gestor_tareas.config.TestUserFactory;
-import com.portafolio.gestor_tareas.config.application.JwtService;
-import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
-import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,14 +14,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -33,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-public class UserControllerIntegrationTest {
+class UserControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -49,13 +42,19 @@ public class UserControllerIntegrationTest {
 
     private TestUserFactory.TestUser regularUser;
     private TestUserFactory.TestUser adminUser;
-    private Set<Permission> permission;
+    private TestUserFactory.TestUser userWithoutPermissions;
+    private TestUserFactory.TestUser userWithTwoPermissions;
+
+    private Long userId;
+    private List<String> permissions;
 
     @BeforeEach
     void setUp() throws Exception {
 
         regularUser = userFactory.createRegularUser();
         adminUser = userFactory.createAdminUser();
+        userWithoutPermissions = userFactory.createRegularUserWithoutPermissions();
+        userWithTwoPermissions = userFactory.createUserWithTwoPermissions();
     }
 
     /*
@@ -95,9 +94,9 @@ public class UserControllerIntegrationTest {
         requestDto.setTask(new ArrayList<>());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users")
-                .header("Authorization", adminUser.getToken())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)))
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isConflict());
     }
 
@@ -113,9 +112,9 @@ public class UserControllerIntegrationTest {
         requestDto.setTask(new ArrayList<>());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users")
-                .header("Authorization", adminUser.getToken())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(requestDto)))
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -126,7 +125,7 @@ public class UserControllerIntegrationTest {
     @Test
     void regularUserCanUpdateTheirOwnData() throws Exception {
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
                 .orElseThrow()
                 .getId();
 
@@ -150,7 +149,7 @@ public class UserControllerIntegrationTest {
     @Test
     void userCannotUpdateOtherUser() throws Exception {
 
-        Long userId = springUserRepository.findByEmail(adminUser.getEmail())
+        userId = springUserRepository.findByEmail(adminUser.getEmail())
                 .orElseThrow()
                 .getId();
 
@@ -172,7 +171,7 @@ public class UserControllerIntegrationTest {
     @Test
     void adminCanUpdateAnyUser() throws Exception {
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
                 .orElseThrow()
                 .getId();
 
@@ -217,7 +216,7 @@ public class UserControllerIntegrationTest {
     @Test
     void adminCanDeleteUser() throws Exception {
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
                 .orElseThrow()
                 .getId();
 
@@ -255,7 +254,7 @@ public class UserControllerIntegrationTest {
     @Test
     void shouldAdminGetUserByIdSuccessfully() throws Exception {
 
-        Long userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
+        userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
         mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}", userId)
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -276,7 +275,7 @@ public class UserControllerIntegrationTest {
     @Test
     void shouldGetUserByIdSuccessfully() throws Exception {
 
-        Long userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
+        userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
         mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}", userId)
                         .header("Authorization", regularUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -315,14 +314,14 @@ public class UserControllerIntegrationTest {
     @Test
     void adminCanAddPermissionById() throws Exception {
 
-        Long userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
+        userId = springUserRepository.findByEmail("usertest@test.com").get().getId();
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users/{id}/permissions", userId)
-                .header("Authorization", adminUser.getToken())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(permissions)))
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isOk());
     }
 
@@ -330,7 +329,7 @@ public class UserControllerIntegrationTest {
     @Test
     void userCannotAddPermissionById() throws Exception {
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users/{id}/permissions", 1L)
                         .header("Authorization", regularUser.getToken())
@@ -343,7 +342,7 @@ public class UserControllerIntegrationTest {
     @Test
     void addingPermissionToNonexistentUserReturnsNotFound() throws Exception {
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users/{id}/permissions", 99L)
                         .header("Authorization", adminUser.getToken())
@@ -356,7 +355,7 @@ public class UserControllerIntegrationTest {
     @Test
     void addingInvalidPermissionReturnsBadRequest() throws Exception {
 
-        List<String> permissions = List.of("");
+        permissions = List.of("");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/users/{id}/permissions", 2L)
                         .header("Authorization", adminUser.getToken())
@@ -373,9 +372,11 @@ public class UserControllerIntegrationTest {
     @Test
     void adminCanAddPermissionByEmail() throws Exception {
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/users/email/{email}/permissions", "usertest@test.com")
+        mockMvc.perform(MockMvcRequestBuilders.post(
+                "/api/users/email/{email}/permissions",
+                                "usertest@test.com")
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
@@ -386,9 +387,11 @@ public class UserControllerIntegrationTest {
     @Test
     void userCannotAddPermissionByEmail() throws Exception {
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/users/email/{email}/permissions", "admintest@test.com")
+        mockMvc.perform(MockMvcRequestBuilders.post(
+                "/api/users/email/{email}/permissions",
+                                "admintest@test.com")
                         .header("Authorization", regularUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
@@ -399,9 +402,11 @@ public class UserControllerIntegrationTest {
     @Test
     void addingPermissionToNonexistentEmailReturnsNotFound() throws Exception {
 
-        List<String> permissions = List.of("TASK_DELETE");
+        permissions = List.of("TASK_DELETE");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/users/email/{email}/permissions", "test@test.com")
+        mockMvc.perform(MockMvcRequestBuilders.post(
+                "/api/users/email/{email}/permissions",
+                                "test@test.com")
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
@@ -412,12 +417,344 @@ public class UserControllerIntegrationTest {
     @Test
     void addingInvalidPermissionByEmailReturnsBadRequest() throws Exception {
 
-        List<String> permissions = List.of("");
+        permissions = List.of("");
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/users/email/{email}/permissions", "usertest@test.com")
+        mockMvc.perform(MockMvcRequestBuilders.post(
+                "/api/users/email/{email}/permissions",
+                                "usertest@test.com")
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isBadRequest());
+    }
+
+    /*
+        deletePermissionsById (DELETE)
+    */
+
+    // Test where all permissions are removed from a user by their userId
+    @Test
+    void shouldSuccessfullyRemoveAllPermissionsByUserId() throws Exception {
+
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All permissions removed successfully"));
+    }
+
+    // Test where some permissions are removed from a user by their user ID
+    @Test
+    void shouldSuccessfullyRemoveSomePermissionsByUserId() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Permissions removed successfully"));
+    }
+
+    // Test where you try to remove some permissions and not others because the user does not have them
+    @Test
+    void shouldSuccessfullyRemoveExistingPermissionsByUserId() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        userId = springUserRepository.findByEmail(userWithTwoPermissions.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(
+                        "Some permissions were not found for this user"));
+    }
+
+    // Test where you try to remove permissions from a user who does not have permissions
+    @Test
+    void shouldReturnConflictBecauseUserDoesNotPermissionsByUserId() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        userId = springUserRepository.findByEmail(userWithoutPermissions.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isConflict());
+    }
+
+    // Test where an attempt is made to remove permissions from a user that does not exist
+    @Test
+    void shouldReturnNotFoundDueNonExistentUserByUserId() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", 99L)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    // Test where an attempt was made to remove permissions from a user with a bad request
+    @Test
+    void shouldReturnBadRequestForEmptyOrNullPermissionsByUserId() throws Exception {
+
+        permissions = List.of();
+
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Test where a regular user attempts to remove permissions from another user
+    @Test
+    void shouldReturnForbiddenBecauseIsNotAdminByUserId() throws Exception {
+
+        userId = springUserRepository.findByEmail(userWithTwoPermissions.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/users/{id}/permissions", userId)
+                        .header("Authorization", regularUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    /*
+        deletePermissionsByEmail (DELETE)
+    */
+
+    // Test where all permissions are removed from a user by their email
+    @Test
+    void shouldSuccessfullyRemoveAllPermissionsByEmail() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "usertest@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All permissions removed successfully"));
+    }
+
+    // Test where some permissions are removed from a user by their email
+    @Test
+    void shouldSuccessfullyRemoveSomePermissionsByEmail() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "usertest@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Permissions removed successfully"));
+    }
+
+    // Test where you try to remove some permissions and not others because the user does not have them
+    @Test
+    void shouldSuccessfullyRemoveExistingPermissionsByEmail() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "testuser@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value(
+                        "Some permissions were not found for this user"));
+    }
+
+    // Test where you try to remove permissions from a user who does not have permissions
+    @Test
+    void shouldReturnConflictBecauseUserDoesNotPermissionsByEmail() throws Exception {
+
+        permissions = List.of("TASK_DELETE", "TASK_WRITE");
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "user@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isConflict());
+    }
+
+    // Test where an attempt is made to remove permissions from a user that does not exist
+    @Test
+    void shouldReturnNotFoundDueNonExistentUserByEmail() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "notfound@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    // Test where an attempt was made to remove permissions from a user with a bad request
+    @Test
+    void shouldReturnBadRequestForEmptyOrNullPermissionsByEmail() throws Exception {
+
+        permissions = List.of();
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "usertest@test.com")
+                        .header("Authorization", adminUser.getToken())
+                        .param("allPermissions", "false")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(permissions)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Test where a regular user attempts to remove permissions from another user
+    @Test
+    void shouldReturnForbiddenBecauseIsNotAdminByEmail() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.delete(
+                "/api/users/email/{email}/permissions",
+                                "testuser@test.com")
+                        .header("Authorization", regularUser.getToken())
+                        .param("allPermissions", "true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    /*
+        showPermissions (GET)
+    */
+
+    // Test that validates that an admin found the permissions of a user
+    @Test
+    void shouldShowPermissionsToAdmin() throws Exception {
+
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Permissions found"));
+    }
+
+    // Test that validates that a user has found their permissions
+    @Test
+    void shouldShowPermissionsToUser() throws Exception {
+
+        userId = springUserRepository.findByEmail(regularUser.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/permissions", userId)
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Permissions found"));
+    }
+
+    // Test that validates that the permissions of a user who does not have permissions were not found
+    @Test
+    void shouldReturnEmptyBecauseNotPermits() throws Exception {
+
+        userId = springUserRepository.findByEmail(userWithoutPermissions.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/permissions", userId)
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User has no assigned permissions"));
+    }
+
+    // Test where a normal user tries to see the permissions of another user
+    @Test
+    void shouldReturnForbiddenBecauseNotUserId() throws Exception {
+
+        userId = springUserRepository.findByEmail(userWithoutPermissions.getEmail())
+                .orElseThrow()
+                .getId();
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/permissions", userId)
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    // Test where an admin tries to see the permissions of a user that does not exist
+    @Test
+    void shouldReturnNotFoundBecauseUserDoesNotExist() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/{id}/permissions", 99L)
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    /*
+        showAllUsersWithPermissions (GET)
+    */
+
+    // Test that validates that an administrator found the users with their permissions
+    @Test
+    void shouldShowAllUsersWithPermissionsToAdmin() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/permissions")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Users with permissions found"));
+    }
+
+    // Test where a normal user tries to view user permissions
+    @Test
+    void shouldReturnForbiddenBecauseIsNotAdmin() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/permissions")
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
     }
 }

@@ -8,6 +8,7 @@ import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserService;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +25,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -187,5 +189,84 @@ public class UserControllerImpl implements UserController{
         userService.addPermissions(null, email, permissions);
 
         return ApiResponseFactory.success(null, "Added permits correctly");
+    }
+
+    @Operation(summary = "Delete permissions by userId",
+            description = "Removing a user's permissions by their user ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Permissions removed successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}/permissions")
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsById(
+            @PathVariable Long id,
+            @RequestParam boolean allPermissions,
+            @RequestBody(required = false) Set<Permission> permissions
+    ) {
+
+        return userService.deletePermissions(id, null, allPermissions, permissions);
+    }
+
+    @Operation(summary = "Delete permissions by email",
+            description = "Removing a user's permissions by their email")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Permissions removed successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/email/{email}/permissions")
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsByEmail(
+            @PathVariable String email,
+            @RequestParam boolean allPermissions,
+            @RequestBody(required = false) Set<Permission> permissions
+    ) {
+
+        return userService.deletePermissions(null, email, allPermissions, permissions);
+    }
+
+    @Operation(summary = "List user permissions by ID",
+            description = "Returns the list of permissions assigned to a specific user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Permissions found"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @GetMapping("/{id}/permissions")
+    public ResponseEntity<ApiResponseDTO<List<Permission>>> showPermissionsById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+
+        List<Permission> permissions = userService.showPermissions(id, userDetails);
+
+        if (permissions.isEmpty()) {
+            return ApiResponseFactory.warning(permissions, "User has no assigned permissions");
+        }
+
+        return ApiResponseFactory.success(permissions, "Permissions found");
+    }
+
+    @Operation(summary = "List users with their permissions",
+            description = "Returns the list of permissions assigned to each user")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Users with permissions found"),
+            @ApiResponse(responseCode = "204", description = "No users with permissions found"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/permissions")
+    public ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> showAllUsersWithPermissions(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        return userService.showAllUsersWithPermissions(userDetails);
     }
 }

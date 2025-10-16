@@ -30,24 +30,38 @@ public class ApiResponseFactory {
     }
 
     public static <T>ResponseEntity<ApiResponseDTO<T>> noContent(String message) {
-        return ResponseEntity.ok(
-                ApiResponseDTO.<T>builder()
-                        .success(true)
-                        .message(message)
-                        .data(null)
-                        .timestamp(LocalDateTime.now())
-                        .build()
-        );
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                        .body(
+                                ApiResponseDTO.<T>builder()
+                                .success(true)
+                                .message(message)
+                                .data(null)
+                                .timestamp(LocalDateTime.now())
+                                .build()
+                        );
     }
 
-    public static <T>ResponseEntity<ApiResponseDTO<T>> error(HttpStatus status, String message) {
-        return ResponseEntity.ok(
-                ApiResponseDTO.<T>builder()
-                        .success(true)
-                        .message(message)
-                        .data(null)
-                        .timestamp(LocalDateTime.now())
-                        .build()
-        );
+    public static <T> ResponseEntity<ApiResponseDTO<T>> warning(T data, String message) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponseDTO.<T>builder()
+                                .success(true)
+                                .message(message)
+                                .data(data)
+                                .timestamp(LocalDateTime.now())
+                                .build()
+                );
+    }
+
+    public static <T> ResponseEntity<ApiResponseDTO<T>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status)
+                        .body(
+                                ApiResponseDTO.<T>builder()
+                                        .success(false)
+                                        .message(message)
+                                        .data(null)
+                                        .timestamp(LocalDateTime.now())
+                                        .build()
+                        );
     }
 }
