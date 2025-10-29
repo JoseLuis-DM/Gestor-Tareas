@@ -12,9 +12,9 @@
 	</parent>
 
 	<groupId>com.portafolio</groupId>
-	<artifactId>Gestor-de-Tareas</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>Gestor-de-Tareas</name>
+	<artifactId>gestor-de-tareas</artifactId>
+	<version>0.0.1</version>
+	<name>gestor-de-tareas</name>
 	<description>Gestor de tareas for Spring Boot</description>
 
 	<properties>
