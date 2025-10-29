@@ -24,7 +24,12 @@ public interface UserService {
 
     void addPermissions(Long userId, String email, Set<Permission> permissions);
 
-    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissions(Long id, String email, boolean allPermissions, Set<Permission> permissions);
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissions(
+            Long id,
+            String email,
+            boolean allPermissions,
+            Set<Permission> permissions
+    );
 
     List<Permission> showPermissions(Long id, UserDetails userDetails);
 

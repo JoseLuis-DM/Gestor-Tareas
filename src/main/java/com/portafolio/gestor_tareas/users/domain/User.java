@@ -1,6 +1,6 @@
 package com.portafolio.gestor_tareas.users.domain;
 
-import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
+import com.portafolio.gestor_tareas.task.domain.Task;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,5 +28,5 @@ public class User {
     private Set<Permission> permissions = new HashSet<>();
 
     @Builder.Default
-    private List<TaskEntity> task = new ArrayList<>();
+    private List<Task> task = new ArrayList<>();
 }

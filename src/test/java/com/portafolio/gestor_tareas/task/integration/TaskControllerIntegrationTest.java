@@ -3,9 +3,15 @@ package com.portafolio.gestor_tareas.task.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.portafolio.gestor_tareas.config.TestTaskFactory;
 import com.portafolio.gestor_tareas.config.TestUserFactory;
+import com.portafolio.gestor_tareas.config.infrastructure.SecurityUtils;
+import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
+import com.portafolio.gestor_tareas.task.domain.TaskRepository;
+import com.portafolio.gestor_tareas.task.infrastructure.dto.BulkTaskDTO;
+import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskAssignmentDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.entity.TaskEntity;
 import com.portafolio.gestor_tareas.task.infrastructure.repository.SpringTaskRepository;
+import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
@@ -14,11 +20,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.util.List;
+
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,20 +53,40 @@ class TaskControllerIntegrationTest {
     private SpringUserRepository springUserRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
     private TestUserFactory userFactory;
 
     @Autowired
     private TestTaskFactory testTaskFactory;
 
+    @SuppressWarnings("removal")
+    @MockBean
+    private SecurityUtils securityUtils;
+
     private TestUserFactory.TestUser regularUser;
     private TestUserFactory.TestUser adminUser;
     private TestUserFactory.TestUser userWithoutPermission;
     private UserEntity userEntity;
+    private TaskEntity taskOne;
+    private TaskEntity taskTwo;
+    private TaskEntity taskThree;
+    private TaskEntity taskFour;
+    private TaskEntity taskFive;
+    private BulkTaskDTO bulkTaskDTO;
 
     private Long taskId;
+    private List<Long> taskIds;
 
     @BeforeEach
     void setUp() throws Exception {
+
+        springTaskRepository.deleteAll();
+        springUserRepository.deleteAll();
 
         regularUser = userFactory.createRegularUser();
         adminUser = userFactory.createAdminUser();
@@ -66,6 +98,41 @@ class TaskControllerIntegrationTest {
         userEntity.setPassword("123456");
 
         springUserRepository.save(userEntity);
+
+        taskOne = new TaskEntity();
+        taskOne.setTitle("Test One");
+        taskOne.setDescription("Sample test one");
+        taskOne.setCompleted(false);
+
+        springTaskRepository.save(taskOne);
+
+        taskTwo = new TaskEntity();
+        taskTwo.setTitle("Test Two");
+        taskTwo.setDescription("Sample test two");
+        taskTwo.setCompleted(false);
+
+        springTaskRepository.save(taskTwo);
+
+        taskThree = new TaskEntity();
+        taskThree.setTitle("Test Three");
+        taskThree.setDescription("Sample test three");
+        taskThree.setCompleted(false);
+
+        springTaskRepository.save(taskThree);
+
+        taskFour = new TaskEntity();
+        taskFour.setTitle("Test Four");
+        taskFour.setDescription("Sample test four");
+        taskFour.setCompleted(false);
+
+        springTaskRepository.save(taskFour);
+
+        taskFive = new TaskEntity();
+        taskFive.setTitle("Test Five");
+        taskFive.setDescription("Sample test five");
+        taskFive.setCompleted(false);
+
+        springTaskRepository.save(taskFive);
     }
 
     private Long createTaskAndGetId(UserEntity user, String title) {
@@ -74,53 +141,97 @@ class TaskControllerIntegrationTest {
         return task.getId();
     }
 
-    private TaskDTO createTaskDTO(String title, String description, boolean completed) {
+    private TaskDTO createTaskDTO(String title, String description) {
 
-        return testTaskFactory.createTaskDTO(title, description, completed);
+        return testTaskFactory.createTaskDTO(title, description);
     }
 
-    private TaskDTO createTaskDTOWithId(Long id, String title, String description, boolean completed) {
+    private TaskDTO createTaskDTOWithId(Long id, String title, String description, Long userId) {
 
-        return testTaskFactory.createTaskDTOWithId(id, title, description, completed);
+        return testTaskFactory.createTaskDTOWithId(id, title, description, userId);
+    }
+
+    public TaskDTO createUnassignedTaskDTO(String title, String description) {
+        return testTaskFactory.createUnassignedfTaskDTO(title ,description);
+    }
+
+    public TaskDTO createOwnTask(String title, String description) {
+        return testTaskFactory.createOwnTask(title, description);
+    }
+
+    public TaskDTO createAssingedTaskDTO(String title, String description, Long userID) {
+        return testTaskFactory.createAssingedTaskDTO(title, description, userID);
     }
 
     /*
         register (POST)
      */
 
-    // Test that validates the creation of a task for admin
+    // Test that validates the creation of a task without being assigned to a user
     @Test
-    void shouldRegisterTaskSuccessfullyByAdmin() throws Exception {
+    void shouldSuccessfullyRegisterTaskWithoutAssigningUser() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task Admin", "Task by admin", false);
+        TaskDTO task = createUnassignedTaskDTO("Task Admin", "Task by admin");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", adminUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(task)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.title").value("Task Admin"));
+                .andExpect(jsonPath("$.data.title").value("Task Admin"))
+                .andExpect(jsonPath("$.data.userId", nullValue()));
+    }
+
+    // Test that validates the creation of a task and its assignment to a user
+    @Test
+    void shouldSuccessfullyRegisterTaskWithAssignedUser() throws Exception {
+
+        TaskDTO task = createAssingedTaskDTO("Task Admin", "Task by admin", userEntity.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.title").value("Task Admin"))
+                .andExpect(jsonPath("$.data.userId", notNullValue()));
+    }
+
+    // Test that validates the creation of a task assigned to the logged-in user
+    @Test
+    void shouldRegisterTaskSuccessfullyWithUserLogged() throws Exception {
+
+        when(securityUtils.getCurrentUserId()).thenReturn(adminUser.getUserID());
+
+        TaskDTO task = createOwnTask("Task Admin", "Task by admin");
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(task)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.title").value("Task Admin"))
+                .andExpect(jsonPath("$.data.userId", notNullValue()));
     }
 
     // Test that validates the creation of a task for user with permission(TASK_WRITE)
     @Test
     void shouldRegisterTaskSuccessfullyByUser() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task User", "Task by user", false);
+        TaskDTO task = createUnassignedTaskDTO("Task User", "Task by user");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", regularUser.getToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(task)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.title").value("Task User"));
+                .andExpect(status().isCreated());
     }
 
     // Test that invalidates the creation of the task by a user without permissions
     @Test
     void shouldNotRegisterTaskUserWithoutPermissions() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task User", "Task by user without permission", false);
+        TaskDTO task = createTaskDTO("Task User", "Task by user without permission");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", userWithoutPermission.getToken())
@@ -133,7 +244,9 @@ class TaskControllerIntegrationTest {
     @Test
     void shouldNotRegisterDuplicateTitleAndUserID() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task User", "Task by user", false);
+        when(securityUtils.getCurrentUserId()).thenReturn(adminUser.getUserID());
+
+        TaskDTO task = createOwnTask("Task User", "Task by user");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", adminUser.getToken())
@@ -152,7 +265,7 @@ class TaskControllerIntegrationTest {
     @Test
     void shouldReturnBadRequestForInvalidData() throws Exception {
 
-        TaskDTO requestDto = createTaskDTO(null, "Task by admin", false);
+        TaskDTO requestDto = createTaskDTO(null, "Task by admin");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", adminUser.getToken())
@@ -169,9 +282,11 @@ class TaskControllerIntegrationTest {
     @Test
     void adminUpdateAnyTask() throws Exception {
 
+        when(securityUtils.getCurrentUserId()).thenReturn(adminUser.getUserID());
+
         taskId = createTaskAndGetId(userEntity, "Task to update");
 
-        TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", false);
+        TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", null);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/task")
                         .header("Authorization", adminUser.getToken())
@@ -185,7 +300,9 @@ class TaskControllerIntegrationTest {
     @Test
     void regularUserCanUpdateTheirOwnTask() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task user", "Task by user", false);
+        when(securityUtils.getCurrentUserId()).thenReturn(regularUser.getUserID());
+
+        TaskDTO task = createOwnTask("Task user", "Task by user");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -193,15 +310,13 @@ class TaskControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(task)))
                 .andExpect(status().isCreated());
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
+        Long currentUserId = securityUtils.getCurrentUserId();
+
+        taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(currentUserId, "Task user")
                 .orElseThrow()
                 .getId();
 
-        taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
-                .orElseThrow()
-                .getId();
-
-        TaskDTO taskDTO = createTaskDTOWithId(taskId, "Updated task", "Updated description", false);
+        TaskDTO taskDTO = createTaskDTOWithId(taskId, "Updated task", "Updated description", currentUserId);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -215,9 +330,11 @@ class TaskControllerIntegrationTest {
     @Test
     void userCannotUpdateOtherTaskThatNotHis() throws Exception {
 
+        when(securityUtils.getCurrentUserId()).thenReturn(regularUser.getUserID());
+
         taskId = createTaskAndGetId(userEntity, "Task");
 
-        TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", false);
+        TaskDTO task = createTaskDTOWithId(taskId, "Updated title", "Updated description", null);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -230,7 +347,7 @@ class TaskControllerIntegrationTest {
     @Test
     void updatedNoExistingTaskReturnNotFound() throws Exception {
 
-        TaskDTO task = createTaskDTOWithId(999L, "Updated title", "Updated description", false);
+        TaskDTO task = createTaskDTOWithId(999L, "Updated title", "Updated description", null);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -245,7 +362,7 @@ class TaskControllerIntegrationTest {
 
         taskId = createTaskAndGetId(userEntity, "Task");
 
-        TaskDTO task = createTaskDTOWithId(taskId, null, null, false);
+        TaskDTO task = createTaskDTOWithId(taskId, null, null, null);
 
         mockMvc.perform(MockMvcRequestBuilders.put("/api/task")
                         .header("Authorization", adminUser.getToken())
@@ -274,7 +391,9 @@ class TaskControllerIntegrationTest {
     @Test
     void userCanDeleteOwnTask() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task user", "Task by user", false);
+        when(securityUtils.getCurrentUserId()).thenReturn(regularUser.getUserID());
+
+        TaskDTO task = createOwnTask("Task user", "Task by user");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -282,9 +401,7 @@ class TaskControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(task)))
                 .andExpect(status().isCreated());
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
-                .orElseThrow()
-                .getId();
+        Long userId = securityUtils.getCurrentUserId();
 
         taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
                 .orElseThrow()
@@ -338,7 +455,9 @@ class TaskControllerIntegrationTest {
     @Test
     void shouldGetUserTaskByIdSuccessfully() throws Exception {
 
-        TaskDTO task = createTaskDTO("Task user", "Task by user", false);
+        when(securityUtils.getCurrentUserId()).thenReturn(regularUser.getUserID());
+
+        TaskDTO task = createOwnTask("Task user", "Task by user");
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/task")
                         .header("Authorization", regularUser.getToken())
@@ -346,9 +465,7 @@ class TaskControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(task)))
                 .andExpect(status().isCreated());
 
-        Long userId = springUserRepository.findByEmail(regularUser.getEmail())
-                .orElseThrow()
-                .getId();
+        Long userId = securityUtils.getCurrentUserId();
 
         taskId = springTaskRepository.findByUserIdAndTitleIgnoreCase(userId, "Task user")
                 .orElseThrow()
@@ -445,5 +562,465 @@ class TaskControllerIntegrationTest {
                         .param("completed", "false")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isConflict());
+    }
+
+    /*
+        addTasksToUser (POST)
+    */
+
+    // Adding a task successfully
+    @Test
+    void shouldAddTaskToUserSuccessfully() throws Exception {
+
+        taskIds = List.of(taskOne.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Task assigned successfully"));
+    }
+
+    // Adding multiple tasks correctly
+    @Test
+    void shouldAddMultipleTasksToUserSuccessfully() throws Exception {
+
+        taskIds = List.of(taskTwo.getId(), taskThree.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All tasks assigned successfully"));
+    }
+
+    // Some tasks are added and others are not because they do not exist
+    @Test
+    void shouldSaveExistingTasks() throws Exception {
+
+        taskIds = List.of(taskFour.getId(), 99L);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some assignments failed"));
+    }
+
+    // Problem due to non-existent user
+    @Test
+    void shouldReturnNotFoundBecauseUserDoesNotExist() throws Exception {
+
+        taskIds = List.of(taskFive.getId(), taskOne.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", 99L)
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isNotFound());
+    }
+
+    // Error when the only task to add does not exist
+    @Test
+    void shouldReturnNotFoundBecauseTaskDoesNotExist() throws Exception {
+
+        taskIds = List.of(99L);
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isNotFound());
+    }
+
+    // Error when sending a bad request because no tasks are sent
+    @Test
+    void shouldReturnBadRequestBecauseTasksAreEmpty() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Error when a user without permissions tries to assign the task to another user
+    @Test
+    void shouldReturnForbiddenBecauseUserDoesNotHavePermissions() throws Exception {
+
+        taskIds = List.of(taskFive.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", userWithoutPermission.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isForbidden());
+    }
+
+    /*
+        addTasksToUsers (POST)
+    */
+
+    // Aggregation of multiple tasks to multiple users
+    @Test
+    void shouldAddMultipleTaskTMultipleUserSuccessfully() throws Exception {
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskOne.getId(), taskThree.getId())),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskTwo.getId(), taskFive.getId()))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users")
+                .header("Authorization", adminUser.getToken())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All tasks assigned successfully"));
+    }
+
+    // Adding tasks to existing users
+    @Test
+    void shouldAddTaskToExistingUsers() throws Exception {
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskFour.getId(), taskThree.getId())),
+                        new TaskAssignmentDTO(99L, List.of(taskTwo.getId(), taskFive.getId()))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users")
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some assignments failed"));
+    }
+
+    // Adding tasks existing to users
+    @Test
+    void shouldAddTaskExistingToUsers() throws Exception {
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskOne.getId(), 98L)),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskTwo.getId(), 99L))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users")
+                        .header("Authorization", regularUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some assignments failed"));
+    }
+
+    // Adding existing tasks to existing users
+    @Test
+    void shouldAddExistingTaskToExistingUsers() throws Exception {
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskOne.getId(), 98L)),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskTwo.getId(), 99L))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/task/users")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some assignments failed"));
+    }
+
+    /*
+        unassignTasksFromUser (DELETE)
+    */
+
+    // Unassign a task successfully
+    @Test
+    void shouldUnassignTaskToUserSuccessfully() throws Exception {
+
+        taskOne.setUser(springUserRepository.findById(regularUser.getUserID()).orElseThrow());
+        springTaskRepository.save(taskOne);
+
+        taskIds = List.of(taskOne.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Task removed successfully"));
+    }
+
+    // Unassign multiple tasks correctly
+    @Test
+    void shouldUnassignMultipleTaskToUserSuccessfully() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                        .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskOne.setUser(user);
+        taskTwo.setUser(user);
+        taskThree.setUser(user);
+        springTaskRepository.saveAll(List.of(taskOne, taskTwo, taskThree));
+
+        taskIds = List.of(taskOne.getId(), taskTwo.getId(), taskThree.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All tasks successfully unassigned"));
+    }
+
+    // Some tasks are unassign and others are not because they do not exist
+    @Test
+    void shouldUnassignExistingTasks() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskTwo.setUser(user);
+        taskThree.setUser(user);
+        springTaskRepository.saveAll(List.of(taskOne, taskTwo, taskThree));
+
+        taskIds = List.of(taskTwo.getId(), taskThree.getId(), 98L, 99L);
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
+    }
+
+    // Some tasks are unassigned and others are not because they are not assigned to the user
+    @Test
+    void shouldUnassignTasksAssignedToUser() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskFour.setUser(user);
+        taskFive.setUser(user);
+        springTaskRepository.saveAll(List.of(taskFour, taskFive));
+
+        taskIds = List.of(taskFour.getId(), taskFive.getId(), taskTwo.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
+    }
+
+    // Problem due to non-existent user
+    @Test
+    void shouldReturnNotFoundBecauseUserNotExist() throws Exception {
+
+        taskIds = List.of(taskOne.getId(), taskTwo.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", 99L)
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isNotFound());
+    }
+
+    // Error when the task to be unassigned is not assigned to the user
+    @Test
+    void shouldReturnConflictBecauseTaskIsNotAssigned() throws Exception {
+
+        taskIds = List.of(taskOne.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isConflict());
+    }
+
+    // Error when some tasks to be unassigned are not assigned to the user
+    @Test
+    void shouldReturnConflictBecauseSomeTaskIsNotAssigned() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskTwo.setUser(user);
+        taskFive.setUser(user);
+        springTaskRepository.saveAll(List.of(taskTwo, taskFive));
+
+        taskIds = List.of(taskTwo.getId(), taskFive.getId(), taskFour.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
+    }
+
+    // Error when sending a bad request because no tasks are sent
+    @Test
+    void shouldBadRequestBecauseTasksAreEmpty() throws Exception {
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isBadRequest());
+    }
+
+    // Error when a user without permissions tries to assign the task to another user
+    @Test
+    void shouldForbiddenBecauseUserDoesNotHavePermissions() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskOne.setUser(user);
+        taskTwo.setUser(user);
+        taskThree.setUser(user);
+        springTaskRepository.saveAll(List.of(taskOne, taskTwo, taskThree));
+
+        taskIds = List.of(taskOne.getId(), taskTwo.getId(), taskThree.getId());
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users/{userId}", regularUser.getUserID())
+                        .header("Authorization", userWithoutPermission.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskIds)))
+                .andExpect(status().isForbidden());
+    }
+
+    /*
+        unassignTasksFromUsers (DELETE)
+    */
+
+    // Unassign of multiple tasks to multiple users
+    @Test
+    void shouldUnassignMultipleTasksFromMultipleUsersSuccessfully() throws Exception {
+
+        UserEntity userOne = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        UserEntity userTwo = springUserRepository.findById(userWithoutPermission.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskTwo.setUser(userOne);
+        taskThree.setUser(userOne);
+        taskFour.setUser(userTwo);
+        taskFive.setUser(userTwo);
+        springTaskRepository.saveAll(List.of(taskTwo, taskThree, taskFour, taskFive));
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskTwo.getId(), taskThree.getId())),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskFour.getId(), taskFive.getId()))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("All tasks successfully unassigned"));
+    }
+
+    // Unassign tasks to existing users
+    @Test
+    void shouldUnassignTaskToExistingUsers() throws Exception {
+
+        UserEntity user = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskTwo.setUser(user);
+        taskThree.setUser(user);
+        springTaskRepository.saveAll(List.of(taskTwo, taskThree));
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskTwo.getId(), taskThree.getId())),
+                        new TaskAssignmentDTO(99L, List.of(taskFour.getId(), taskFive.getId()))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
+    }
+
+    // Unassign tasks existing to users
+    @Test
+    void shouldUnassignTaskExistingToUsers() throws Exception {
+
+        UserEntity userOne = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        UserEntity userTwo = springUserRepository.findById(userWithoutPermission.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskThree.setUser(userOne);
+        taskFive.setUser(userTwo);
+        springTaskRepository.saveAll(List.of(taskThree, taskFive));
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskThree.getId(), 98L)),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskFive.getId(), 99L))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
+    }
+
+    // Unassign existing tasks to existing users
+    @Test
+    void shouldUnassignExistingTaskToExistingUsers() throws Exception {
+
+        UserEntity userOne = springUserRepository.findById(regularUser.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        UserEntity userTwo = springUserRepository.findById(userWithoutPermission.getUserID())
+                .orElseThrow(() -> new NotFoundException("User not found"));
+
+        taskThree.setUser(userOne);
+        taskFour.setUser(userTwo);
+        springTaskRepository.saveAll(List.of(taskTwo, taskThree, taskFour, taskFive));
+
+        bulkTaskDTO = new BulkTaskDTO(
+                List.of(
+                        new TaskAssignmentDTO(regularUser.getUserID(), List.of(taskThree.getId(), 97L)),
+                        new TaskAssignmentDTO(userWithoutPermission.getUserID(), List.of(taskFour.getId(), 98L)),
+                        new TaskAssignmentDTO(99L, List.of(taskFive.getId(), 99L))
+                )
+        );
+
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/task/users")
+                        .header("Authorization", adminUser.getToken())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bulkTaskDTO)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Some tasks could not be unassigned"));
     }
 }

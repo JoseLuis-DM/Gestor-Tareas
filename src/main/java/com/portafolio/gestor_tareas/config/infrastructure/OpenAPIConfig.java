@@ -248,6 +248,22 @@ public class OpenAPIConfig {
                                                         )
                                                 ))
                                         ))
+                                // UserDontHaveTasksException -> 409
+                                .addResponses("UserDontHaveTasks",
+                                        new ApiResponse()
+                                                .description("Conflict - User does not have any tasks")
+                                                .content(new Content().addMediaType(JSON,
+                                                        new MediaType().example(
+                                                                builderExample(
+                                                                        409,
+                                                                        "Conflict",
+                                                                        DATE,
+                                                                        "/api/user/{id}/permissions",
+                                                                        List.of("User does not have any tasks." +
+                                                                                " The user does not have tasks")
+                                                        )
+                                                ))
+                                        ))
                                 // Internal Server Error - 500
                                 .addResponses("InternalError",
                                         new ApiResponse()

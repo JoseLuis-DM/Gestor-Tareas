@@ -1,5 +1,6 @@
 package com.portafolio.gestor_tareas.task.infrastructure.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,5 +13,11 @@ public record TaskDTO(
 
         @Size(max = 300, message = "The description cannot have more than 300 characters")
         String description,
-        boolean completed)
+        boolean completed,
+
+        @JsonProperty(required = false)
+        Long userId,
+
+        @JsonProperty(required = false)
+        Boolean ownTask)
 { }
