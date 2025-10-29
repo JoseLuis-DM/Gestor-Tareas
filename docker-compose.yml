@@ -1,0 +1,32 @@
+services:
+  gestor-db:
+    image: mysql:8.0.33
+    container_name: gestor-db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: teti1402
+      MYSQL_DATABASE: gestorbd
+    restart: always
+    volumes:
+      - gestor-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+  
+  gestor-app:
+    build: .
+    container_name: gestor-app
+    mem_limit: 512m
+    ports:
+      - "8080:8080" 
+    env_file:
+      - ./variables.env
+    depends_on:
+      gestor-db:
+        condition: service_healthy
+    restart: always
+    
+volumes:
+  gestor-data:
