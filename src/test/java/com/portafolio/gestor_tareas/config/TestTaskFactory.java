@@ -29,13 +29,23 @@ public class TestTaskFactory {
         return springTaskRepository.save(task);
     }
 
-    public TaskDTO createTaskDTO(String title, String description, boolean completed) {
-
-        return new TaskDTO(null, title, description, completed);
+    public TaskDTO createTaskDTO(String title, String description) {
+        return new TaskDTO(null, title, description, false, null, false);
     }
 
-    public TaskDTO createTaskDTOWithId(Long id, String title, String description, boolean completed) {
+    public TaskDTO createTaskDTOWithId(Long id, String title, String description, Long userId) {
+        return new TaskDTO(id, title, description, false, userId, false);
+    }
 
-        return new TaskDTO(id, title, description, completed);
+    public TaskDTO createUnassignedfTaskDTO(String title, String description) {
+        return new TaskDTO(null, title, description, false, null, false);
+    }
+
+    public TaskDTO createOwnTask(String title, String description) {
+        return new TaskDTO(null, title, description, false, null, true);
+    }
+
+    public TaskDTO createAssingedTaskDTO(String title, String description, Long userID) {
+        return new TaskDTO(null, title, description, false, userID, false);
     }
 }

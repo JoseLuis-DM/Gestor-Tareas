@@ -1,6 +1,6 @@
 package com.portafolio.gestor_tareas.task.domain;
 
-import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
+import com.portafolio.gestor_tareas.users.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +16,5 @@ public class Task {
     private String title;
     private String description;
     private boolean completed;
-    private UserEntity user;
+    private User user;
 }

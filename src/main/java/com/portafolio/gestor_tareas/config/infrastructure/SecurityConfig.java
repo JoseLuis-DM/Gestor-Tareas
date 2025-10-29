@@ -70,12 +70,9 @@ public class SecurityConfig {
             return;
         }
 
-        String email = userDetails.getUsername();
+        Long currentUserId = securityUtils.getCurrentUserId();
 
-        UserEntity user = userRepository.findById(requestedId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        if (!user.getEmail().equals(email)) {
+        if (!requestedId.equals(currentUserId)) {
             throw new ForbiddenException("Forbidden");
         }
     }

@@ -7,6 +7,7 @@ import com.portafolio.gestor_tareas.auth.domain.RefreshToken;
 import com.portafolio.gestor_tareas.auth.infrastructure.AuthenticationRequest;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
+import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import lombok.Data;
@@ -27,7 +28,8 @@ public class TestUserFactory {
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
-    private final SpringUserRepository userRepository;
+    private final SpringUserRepository springUserRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
 
@@ -36,12 +38,14 @@ public class TestUserFactory {
     public TestUserFactory(
             @Autowired(required = false) MockMvc mockMvc,
             ObjectMapper objectMapper,
-            SpringUserRepository userRepository,
+            SpringUserRepository springUserRepository,
+            UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             RefreshTokenService refreshTokenService
     ) {
         this.mockMvc = mockMvc;
         this.objectMapper = objectMapper;
+        this.springUserRepository = springUserRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenService = refreshTokenService;
@@ -97,7 +101,7 @@ public class TestUserFactory {
                 "Admin",
                 "Test",
                 Role.ADMIN,
-                new ArrayList<>(List.of("TASK_READ", "TASK_WRITE", "TASK_DELETE", "TASK_ASSIGN")),
+                new ArrayList<>(List.of("TASK_READ", "TASK_WRITE", "TASK_DELETE", "TASK_ASSIGN", "TASK_UNASSIGN")),
          true,
                 false
         );
@@ -131,13 +135,14 @@ public class TestUserFactory {
                             Permission.TASK_WRITE,
                             Permission.TASK_READ,
                             Permission.TASK_ASSIGN,
+                            Permission.TASK_UNASSIGN,
                             Permission.TASK_DELETE
                     )));
                 }
 
             }
 
-            userRepository.save(user);
+            springUserRepository.save(user);
         }
 
         AuthenticationRequest authRequest = new AuthenticationRequest(email, password);
@@ -161,13 +166,13 @@ public class TestUserFactory {
             }
         }
 
-        UserEntity userEntity = userRepository.findByEmail(email).orElseThrow();
+        UserEntity userEntity = springUserRepository.findByEmail(email).orElseThrow();
 
         RefreshToken refreshTokenEntity = refreshTokenService.createRefreshToken(userEntity.getId());
 
         String refreshToken = refreshTokenEntity.getToken();
 
-        return new TestUser(email, bearerToken, refreshToken);
+        return new TestUser(email, bearerToken, refreshToken, userEntity.getId());
     }
 
     public static class TestUser {
@@ -175,12 +180,14 @@ public class TestUserFactory {
         private final String email;
         private final String token;
         private final String refreshToken;
+        private final Long userID;
 
-        public TestUser(String email, String token, String refreshToken) {
+        public TestUser(String email, String token, String refreshToken, Long userID) {
 
             this.email = email;
             this.token = token;
             this.refreshToken = refreshToken;
+            this.userID = userID;
         }
 
         public String getEmail() {
@@ -193,6 +200,10 @@ public class TestUserFactory {
 
         public String getRefreshToken() {
             return refreshToken;
+        }
+
+        public Long getUserID() {
+            return userID;
         }
     }
 }

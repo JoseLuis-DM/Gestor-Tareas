@@ -8,6 +8,7 @@ import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.task.domain.Task;
 import com.portafolio.gestor_tareas.task.domain.TaskService;
+import com.portafolio.gestor_tareas.task.infrastructure.dto.BulkTaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.dto.TaskDTO;
 import com.portafolio.gestor_tareas.task.infrastructure.mapper.TaskMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/task")
@@ -54,12 +56,7 @@ public class TaskControllerImpl implements TaskController{
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PostMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
-
-        Long userId = securityUtils.getCurrentUserId();
-        Task task = taskMapper.taskDTOToTask(taskDTO);
-        Task saved = taskService.save(task, userId);
-
-        return ApiResponseFactory.created(taskMapper.taskToTaskDTO(saved), "Task created successfully");
+        return taskService.save(taskDTO);
     }
 
     @Operation(summary = "Update an existing task",
@@ -128,8 +125,10 @@ public class TaskControllerImpl implements TaskController{
         List<TaskDTO> taskDTO = taskService.findAll()
                 .stream()
                 .filter(task -> {
-                    return userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN")) ||
-                            task.getUser().getId().equals(currentUserId);
+                    if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+                        return true;
+                    }
+                    return task.getUser() != null && task.getUser().getId().equals(currentUserId);
                 })
                 .map(taskMapper::taskToTaskDTO)
                 .toList();
@@ -177,5 +176,77 @@ public class TaskControllerImpl implements TaskController{
         taskService.updateCompletionStatus(id, completed, userDetails);
         String msg = completed ? "Task marked as completed" : "Task marked as not completed";
         return ApiResponseFactory.success(null, msg);
+    }
+
+    @Operation(summary = "Add tasks to a user",
+            description = "Tasks are added to the user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Task assigned successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasAuthority('TASK_ASSIGN')")
+    @PostMapping("/users/{userId}")
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> addTasksToUser(
+            @PathVariable Long userId,
+            @RequestBody List<Long> taskIds
+    ) {
+        return taskService.addTasksToUser(userId, taskIds);
+    }
+
+    @Operation(summary = "Add tasks to users",
+            description = "Tasks are added to users in bulk")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All tasks assigned successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasAuthority('TASK_ASSIGN')")
+    @PostMapping("/users")
+    public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> addTasksToUsers(
+            @RequestBody BulkTaskDTO bulkTaskDTO
+    ) {
+        return taskService.addTasksToUsers(bulkTaskDTO);
+    }
+
+    @Operation(summary = "Task deleted from a user",
+            description = "The task is deleted from the user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Task removed successfully"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/UserDontHaveTasks"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasAuthority('TASK_UNASSIGN')")
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> unassignTasksFromUser(
+            @PathVariable Long userId,
+            @RequestBody List<Long> taskIds
+    ) {
+        return taskService.unassignTasksFromUser(userId, taskIds);
+    }
+
+    @Operation(summary = "Unassign tasks from users",
+            description = "Removes task assignments in bulk for multiple users")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "All tasks successfully deleted"),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest", content = @Content),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/AccessDenied"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/UserDontHaveTasks"),
+            @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
+    })
+    @PreAuthorize("hasAuthority('TASK_UNASSIGN')")
+    @DeleteMapping("/users")
+    public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> unassignTasksFromUsers(
+            @RequestBody BulkTaskDTO bulkTaskDTO
+    ) {
+        return taskService.unassignTasksFromUsers(bulkTaskDTO)  ;
     }
 }

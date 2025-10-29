@@ -27,9 +27,17 @@ public interface UserController {
 
     ResponseEntity<ApiResponseDTO<Object>> addPermissionsByEmail(String email, Set<Permission> permissions);
 
-    ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsById(Long userId, boolean allPermissions, Set<Permission> permissions);
+    ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsById(
+            Long userId,
+            boolean allPermissions,
+            Set<Permission> permissions
+    );
 
-    ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsByEmail(String email, boolean allPermissions, Set<Permission> permissions);
+    ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissionsByEmail(
+            String email,
+            boolean allPermissions,
+            Set<Permission> permissions
+    );
 
     ResponseEntity<ApiResponseDTO<List<Permission>>> showPermissionsById(Long id, UserDetails userDetails);
 

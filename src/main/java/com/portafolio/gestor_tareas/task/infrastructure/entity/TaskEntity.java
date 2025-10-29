@@ -27,7 +27,7 @@ public class TaskEntity extends Auditable {
     private boolean completed;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private UserEntity user;
 
     // (Equals y hashcode) avoids problems with bidirectional relationships by only using the id

@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
     private final SecurityConfig securityConfig;
     private final UserMapper userMapper;
 
-    private static String notFound = "User not found";
+    private static final String NOT_FOUND = "User not found";
 
     private User user;
 
@@ -50,7 +50,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User update(User user) {
         User updateUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new NotFoundException(notFound));
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND));
 
         existUser = userRepository.existsEmail(user.getEmail());
 
@@ -95,10 +95,10 @@ public class UserServiceImpl implements UserService {
 
         if (userId != null) {
             user = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException(notFound));
+                    .orElseThrow(() -> new NotFoundException(NOT_FOUND));
         } else if (email != null) {
             user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new NotFoundException(notFound));
+                    .orElseThrow(() -> new NotFoundException(NOT_FOUND));
         } else {
             throw new BadRequestException("UserId or email must be provided");
         }
@@ -122,11 +122,11 @@ public class UserServiceImpl implements UserService {
 
         if (userId != null) {
             user = userRepository.findById(userId)
-                    .orElseThrow(() -> new NotFoundException(notFound));
+                    .orElseThrow(() -> new NotFoundException(NOT_FOUND));
 
         } else if (email != null) {
             user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new NotFoundException(notFound));
+                    .orElseThrow(() -> new NotFoundException(NOT_FOUND));
 
         } else {
             throw new BadRequestException("UserId or email must be provided");
@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
     public List<Permission> showPermissions(Long userId, UserDetails userDetails) {
 
         user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(notFound));
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND));
 
         securityConfig.checkAccess(user.getId(), userDetails);
 
