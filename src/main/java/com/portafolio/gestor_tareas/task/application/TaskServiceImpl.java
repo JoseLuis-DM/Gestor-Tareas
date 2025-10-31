@@ -23,6 +23,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -44,11 +45,12 @@ public class TaskServiceImpl implements TaskService {
 
     private static final String USER_NOT_FOUND = "User not found";
     private static final String TASK_NOT_FOUND = "Task not found";
+    private static final String NOT_FOUND = " not found";
     private static final String ERRORS = "errors";
 
     @Override
     @Transactional
-    public ResponseEntity<ApiResponseDTO<TaskDTO>> save(TaskDTO taskDTO) {
+    public TaskDTO save(TaskDTO taskDTO) {
 
         Task taskInput = taskMapper.taskDTOToTask(taskDTO);
 
@@ -78,49 +80,67 @@ public class TaskServiceImpl implements TaskService {
         taskInput.setCompleted(false);
         taskInput.setUser(newUser);
 
-        TaskEntity taskEntity = taskMapper.taskToTaskEntity(taskInput);
+        TaskEntity savedEntity = springTaskRepository.save(taskMapper.taskToTaskEntity(taskInput));
 
-        TaskEntity savedEntity = springTaskRepository.save(taskEntity);
-
-        Task savedTask = taskMapper.taskEntityToTask(savedEntity);
-
-        TaskDTO response = taskMapper.taskToTaskDTO(savedTask);
-
-        return ApiResponseFactory.created(response, "Task created successfully");
+        return taskMapper.taskEntityToTaskDTO(savedEntity);
     }
 
     @Transactional
-    public Task update(Task task, Long userId, UserDetails userDetails) {
+    public TaskDTO update(TaskDTO taskDTO, Long userId, UserDetails userDetails) {
 
-        Task updateTask = taskRepository.findById(task.getId())
+        Task taskToUpdate = taskRepository.findById(taskDTO.id())
                 .orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
 
         if (userRepository.findById(userId).isEmpty()) {
             throw new NotFoundException(USER_NOT_FOUND);
         }
 
-        securityConfig.checkAccess(updateTask.getUser().getId(), userDetails);
+        securityConfig.checkAccess(taskToUpdate.getUser().getId(), userDetails);
 
-        updateTask.setTitle(task.getTitle());
-        updateTask.setDescription(task.getDescription());
-        updateTask.setCompleted(task.isCompleted());
+        if (taskDTO.title() != null) {
+            taskToUpdate.setTitle(taskDTO.title());
+        }
 
-        return taskRepository.save(updateTask);
+        if (taskDTO.description() != null) {
+            taskToUpdate.setDescription(taskDTO.description());
+        }
+
+        taskToUpdate.setCompleted(taskDTO.completed());
+
+        TaskEntity savedEntity = springTaskRepository.save(taskMapper.taskToTaskEntity(taskToUpdate));
+
+        return taskMapper.taskEntityToTaskDTO(savedEntity);
     }
 
     @Override
-    public Optional<Task> findById(Long id) {
-        return taskRepository.findById(id);
+    public TaskDTO findById(Long id, UserDetails userDetails) {
+
+        task = taskRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(TASK_NOT_FOUND));
+
+        securityConfig.checkAccess(task.getUser().getId(), userDetails);
+
+        return taskMapper.taskToTaskDTO(task);
     }
 
     @Override
-    public List<Task> findAll() {
-        return taskRepository.findAll();
+    public List<TaskDTO> findAll(Long id, UserDetails userDetails) {
+
+        return taskRepository.findAll()
+                .stream()
+                .filter(taskUse -> {
+                    if (userDetails.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
+                        return true;
+                    }
+                    return taskUse.getUser() != null && taskUse.getUser().getId().equals(id);
+                })
+                .map(taskMapper::taskToTaskDTO)
+                .toList();
     }
 
     @Override
     public void delete(Long id, UserDetails userDetails) {
-         task = taskRepository.findById(id)
+        task = taskRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("The task does not exist"));
 
         securityConfig.checkAccess(task.getUser().getId(), userDetails);
@@ -152,10 +172,13 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> addTasksToUser(Long userId, List<Long> taskIds) {
+    public Map<String, List<String>> addTasksToUser(Long userId, List<Long> taskIds) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
+
+        List<String> successMessages = new ArrayList<>();
+        List<String> errorsMessages = new ArrayList<>();
 
         if (taskIds.size() == 1) {
             Long taskId = taskIds.get(0);
@@ -166,36 +189,38 @@ public class TaskServiceImpl implements TaskService {
             task.setUser(user);
             taskRepository.save(task);
 
-            return ApiResponseFactory.success(null, "Task assigned successfully");
+            successMessages.add("Task " + taskId + " assigned successfully to user " + userId);
+        } else {
+
+            List<TaskAssignmentDTO> assignments = List.of(new TaskAssignmentDTO(userId, taskIds));
+            Map<String, List<String>> result = processTaskForUser(assignments);
+
+            successMessages.addAll(result.get("success"));
+            errorsMessages.addAll(result.get("errors"));
         }
 
-        List<TaskAssignmentDTO> assignments = List.of(new TaskAssignmentDTO(userId, taskIds));
-        Map<String, List<String>> result = processTaskForUser(assignments);
+        Map<String, List<String>> response = new HashMap<>();
 
-        String message = result.get(ERRORS).isEmpty()
-                ? "All tasks assigned successfully"
-                : "Some assignments failed";
+        response.put("success", successMessages);
+        response.put("errors", errorsMessages);
 
-        return ApiResponseFactory.success(null, message);
+        return response;
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> addTasksToUsers(BulkTaskDTO bulkTaskDTO) {
+    public Map<String, List<String>> addTasksToUsers(BulkTaskDTO bulkTaskDTO) {
 
-        Map<String, List<String>> result = processTaskForUser(bulkTaskDTO.assignments());
-
-        String message = result.get(ERRORS).isEmpty()
-                ? "All tasks assigned successfully"
-                : "Some assignments failed";
-
-        return ApiResponseFactory.success(result, message);
+         return processTaskForUser(bulkTaskDTO.assignments());
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> unassignTasksFromUser(Long userId, List<Long> taskIds) {
+    public Map<String, List<String>> unassignTasksFromUser(Long userId, List<Long> taskIds) {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND));
+
+        List<String> successMessages = new ArrayList<>();
+        List<String> errorsMessages = new ArrayList<>();
 
         if (taskIds.size() == 1) {
             Long taskId = taskIds.get(0);
@@ -211,29 +236,27 @@ public class TaskServiceImpl implements TaskService {
             task.setUser(null);
             taskRepository.save(task);
 
-            return ApiResponseFactory.success(null, "Task removed successfully");
+            successMessages.add("Task removed successfully");
+        } else {
+            List<TaskAssignmentDTO> assignments = List.of(new TaskAssignmentDTO(userId, taskIds));
+            Map<String, List<String>> result = removeTasksFromUsers(assignments);
+
+            successMessages.addAll(result.get("success"));
+            errorsMessages.addAll(result.get("errors"));
         }
 
-        List<TaskAssignmentDTO> assignments = List.of(new TaskAssignmentDTO(userId, taskIds));
-        Map<String, List<String>> result = removeTasksFromUsers(assignments);
+        Map<String, List<String>> response = new HashMap<>();
 
-        String message = result.get(ERRORS).isEmpty()
-                ? "All tasks successfully unassigned"
-                : "Some tasks could not be unassigned";
+        response.put("success", successMessages);
+        response.put("errors", errorsMessages);
 
-        return ApiResponseFactory.success(null, message);
+        return response;
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> unassignTasksFromUsers(BulkTaskDTO bulkTaskDTO) {
+    public Map<String, List<String>> unassignTasksFromUsers(BulkTaskDTO bulkTaskDTO) {
 
-        Map<String, List<String>> result = removeTasksFromUsers(bulkTaskDTO.assignments());
-
-        String message = result.get(ERRORS).isEmpty()
-                ? "All tasks successfully unassigned"
-                : "Some tasks could not be unassigned";
-
-        return ApiResponseFactory.success(result, message);
+        return removeTasksFromUsers(bulkTaskDTO.assignments());
     }
 
     private Map<String, List<String>> processTaskForUser(List<TaskAssignmentDTO> assignments) {
@@ -244,12 +267,12 @@ public class TaskServiceImpl implements TaskService {
         for (TaskAssignmentDTO assignment : assignments) {
             try {
                 User user = userRepository.findById(assignment.userId())
-                        .orElseThrow(() -> new NotFoundException("User with id " + assignment.userId() + " not found"));
+                        .orElseThrow(() -> new NotFoundException("User with id " + assignment.userId() + NOT_FOUND));
 
                 for (Long taskId : assignment.taskIds()) {
 
                     task = taskRepository.findById(taskId)
-                            .orElseThrow(() -> new NotFoundException("Task with id " + taskId + " not found"));
+                            .orElseThrow(() -> new NotFoundException("Task with id " + taskId + NOT_FOUND));
 
                     task.setUser(user);
                     taskRepository.save(task);
@@ -275,7 +298,7 @@ public class TaskServiceImpl implements TaskService {
         for (TaskAssignmentDTO deletion : deletions) {
             try {
                 User user = userRepository.findById(deletion.userId())
-                        .orElseThrow(() -> new NotFoundException("User with id " + deletion.userId() + " not found"));
+                        .orElseThrow(() -> new NotFoundException("User with id " + deletion.userId() + NOT_FOUND));
 
                 List<Task> userTasks = taskRepository.findByUser(user);
 
@@ -285,7 +308,7 @@ public class TaskServiceImpl implements TaskService {
                     for (Long taskId : deletion.taskIds()) {
 
                         task = taskRepository.findById(taskId)
-                                .orElseThrow(() -> new NotFoundException("Task with id " + taskId + " not found"));
+                                .orElseThrow(() -> new NotFoundException("Task with id " + taskId + NOT_FOUND));
 
                         if (!user.equals(task.getUser())) {
                             throw new UserDontHaveTasksException(
