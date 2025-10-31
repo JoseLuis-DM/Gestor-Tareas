@@ -2,7 +2,6 @@ package com.portafolio.gestor_tareas.task.unit;
 
 import com.portafolio.gestor_tareas.config.TestTaskFactory;
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
-import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.exception.domain.*;
 import com.portafolio.gestor_tareas.task.application.TaskServiceImpl;
 import com.portafolio.gestor_tareas.task.domain.Task;
@@ -22,8 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
@@ -62,11 +59,11 @@ class TaskServiceUnitTest {
     private User userDomain;
     private User userDomainTwo;
     private Task inputTask;
-    private Task updateTask;
     private Task taskTwo;
     private Task taskThree;
     private Task taskFour;
     private Task taskFive;
+    private TaskDTO taskToUpdate;
     private BulkTaskDTO bulkTaskDTO;
 
     @BeforeEach
@@ -79,10 +76,10 @@ class TaskServiceUnitTest {
         userDomain.setPassword("123456");
 
         userEntity = new UserEntity();
-        userDomain.setId(2L);
-        userDomain.setFirstname("User");
-        userDomain.setEmail("testUser@example.com");
-        userDomain.setPassword("123456");
+        userEntity.setId(2L);
+        userEntity.setFirstname("User");
+        userEntity.setEmail("testUser@example.com");
+        userEntity.setPassword("123456");
 
         userDomainTwo = new User();
         userDomainTwo.setId(3L);
@@ -96,13 +93,6 @@ class TaskServiceUnitTest {
         inputTask.setDescription("Sample test");
         inputTask.setCompleted(false);
         inputTask.setUser(userDomain);
-
-        updateTask = new Task();
-        updateTask.setId(1L);
-        updateTask.setTitle("Test Updated");
-        updateTask.setDescription("Sample test updated");
-        updateTask.setCompleted(false);
-        updateTask.setUser(userDomain);
 
         taskTwo = new Task();
         taskTwo.setId(2L);
@@ -156,7 +146,7 @@ class TaskServiceUnitTest {
     @Test
     void shouldSaveTaskSuccessfullyWithoutUser() {
 
-        TaskDTO taskDTO = createUnassignedTaskDTO("Test Task", "Simple Test");
+        TaskDTO taskDTO = createUnassignedTaskDTO("Test Task", "Sample Test");
 
         Task taskDomain = new Task(
                 null,
@@ -166,12 +156,6 @@ class TaskServiceUnitTest {
                 null
         );
 
-        TaskEntity taskEntity = new TaskEntity();
-        taskEntity.setTitle(taskDomain.getTitle());
-        taskEntity.setDescription(taskDomain.getDescription());
-        taskEntity.setCompleted(taskDomain.isCompleted());
-        taskEntity.setUser(null);
-
         TaskEntity savedEntity = new TaskEntity();
         savedEntity.setId(1L);
         savedEntity.setTitle(taskDomain.getTitle());
@@ -179,95 +163,84 @@ class TaskServiceUnitTest {
         savedEntity.setCompleted(taskDomain.isCompleted());
         savedEntity.setUser(null);
 
-        Task savedDomain = new Task(
-                1L,
-                taskDomain.getTitle(),
-                taskDomain.getDescription(),
-                false,
-                null);
-
         TaskDTO responseDTO = createTaskDTOWithId(1L, taskDomain.getTitle(), taskDomain.getDescription(), null);
 
         when(taskMapper.taskDTOToTask(taskDTO)).thenReturn(taskDomain);
-        when(taskMapper.taskToTaskEntity(taskDomain)).thenReturn(taskEntity);
-        when(springTaskRepository.save(taskEntity)).thenReturn(savedEntity);
-        when(taskMapper.taskEntityToTask(savedEntity)).thenReturn(savedDomain);
-        when(taskMapper.taskToTaskDTO(savedDomain)).thenReturn(responseDTO);
+        when(taskMapper.taskToTaskEntity(taskDomain)).thenReturn(savedEntity);
+        when(springTaskRepository.save(any(TaskEntity.class))).thenReturn(savedEntity);
+        when(taskMapper.taskEntityToTaskDTO(savedEntity)).thenReturn(responseDTO);
 
-        ResponseEntity<ApiResponseDTO<TaskDTO>> response = taskService.save(taskDTO);
+        TaskDTO response = taskService.save(taskDTO);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Test Task", response.getBody().getData().title()),
-                () -> assertNull(response.getBody().getData().userId()),
-                () -> assertFalse(response.getBody().getData().completed())
+                () -> assertEquals(1L, response.id()),
+                () -> assertEquals("Test Task", response.title()),
+                () -> assertEquals("Sample Test", response.description()),
+                () -> assertNull(response.userId())
         );
 
-        verify(springTaskRepository, times(1)).save(taskEntity);
+        verify(taskMapper, times(1)).taskDTOToTask(taskDTO);
+        verify(taskMapper, times(1)).taskToTaskEntity(taskDomain);
+        verify(springTaskRepository, times(1)).save(savedEntity);
+        verify(taskMapper, times(1)).taskEntityToTaskDTO(savedEntity);
     }
 
     // Test that validates the creation of a task and its assignment to a user
     @Test
     void shouldSaveTaskSuccessfullyWithUser() {
 
-        TaskDTO taskDTO = createAssingedTaskDTO("Test Task", "Sample Test", userDomain.getId());
+        TaskDTO taskDTO = createAssingedTaskDTO("Test Task", "Sample Test", userEntity.getId());
+
+        User newUser = new User();
+        newUser.setId(userEntity.getId());
+        newUser.setFirstname(userEntity.getFirstname());
+        newUser.setEmail(userEntity.getEmail());
+        newUser.setPassword(userEntity.getPassword());
 
         Task taskDomain = new Task(
                 null,
                 taskDTO.title(),
                 taskDTO.description(),
                 taskDTO.completed(),
-                userDomain
+                newUser
         );
-
-        TaskEntity taskDomainUser = new TaskEntity();
-        taskDomainUser.setUser(userEntity);
-
-        TaskEntity taskEntity = new TaskEntity();
-        taskEntity.setTitle(taskDomain.getTitle());
-        taskEntity.setDescription(taskDomain.getDescription());
-        taskEntity.setCompleted(taskDomain.isCompleted());
-        taskEntity.setUser(taskDomainUser.getUser());
 
         TaskEntity savedEntity = new TaskEntity();
         savedEntity.setId(1L);
         savedEntity.setTitle(taskDomain.getTitle());
         savedEntity.setDescription(taskDomain.getDescription());
         savedEntity.setCompleted(taskDomain.isCompleted());
-        savedEntity.setUser(taskDomainUser.getUser());
+        savedEntity.setUser(userEntity);
 
-        Task savedDomain = new Task(
+        TaskDTO responseDTO = createTaskDTOWithId(
                 1L,
                 taskDomain.getTitle(),
                 taskDomain.getDescription(),
-                false,
-                userDomain
+                newUser.getId()
         );
 
-        TaskDTO responseDTO = createTaskDTOWithId(1L, taskDomain.getTitle(), taskDomain.getDescription(), userDomain.getId());
-
         when(taskMapper.taskDTOToTask(taskDTO)).thenReturn(taskDomain);
-        when(userRepository.findById(userDomain.getId())).thenReturn(Optional.of(userDomain));
-        when(taskMapper.taskToTaskEntity(taskDomain)).thenReturn(taskEntity);
-        when(springTaskRepository.save(taskEntity)).thenReturn(savedEntity);
-        when(taskMapper.taskEntityToTask(savedEntity)).thenReturn(savedDomain);
-        when(taskMapper.taskToTaskDTO(savedDomain)).thenReturn(responseDTO);
+        when(userRepository.findById(newUser.getId())).thenReturn(Optional.of(newUser));
+        when(taskMapper.taskToTaskEntity(taskDomain)).thenReturn(savedEntity);
+        when(springTaskRepository.save(any(TaskEntity.class))).thenReturn(savedEntity);
+        when(taskMapper.taskEntityToTaskDTO(savedEntity)).thenReturn(responseDTO);
 
-        ResponseEntity<ApiResponseDTO<TaskDTO>> response = taskService.save(taskDTO);
+        TaskDTO response = taskService.save(taskDTO);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.CREATED, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Test Task", response.getBody().getData().title()),
-                () -> assertEquals(userDomain.getId(), response.getBody().getData().userId()),
-                () -> assertFalse(response.getBody().getData().completed())
+                () -> assertEquals(1L, response.id()),
+                () -> assertEquals("Test Task", response.title()),
+                () -> assertEquals("Sample Test", response.description()),
+                () -> assertNotNull(response.userId())
         );
 
-        verify(springTaskRepository, times(1)).save(taskEntity);
-        verify(userRepository, times(1)).findById(userDomain.getId());
+        verify(taskMapper, times(1)).taskDTOToTask(taskDTO);
+        verify(userRepository, times(1)).findById(newUser.getId());
+        verify(taskMapper, times(1)).taskToTaskEntity(taskDomain);
+        verify(springTaskRepository, times(1)).save(savedEntity);
+        verify(taskMapper, times(1)).taskEntityToTaskDTO(savedEntity);
     }
 
     // Test that validates that a task is not saved when the task already exists
@@ -303,41 +276,67 @@ class TaskServiceUnitTest {
     @Test
     void shouldUpdateTaskSuccessfully() {
 
+        taskToUpdate = createTaskDTOWithId(
+                1L,
+                "Test Updated",
+                "Sample test updated",
+                userDomain.getId()
+        );
+
+        UserEntity user = new UserEntity();
+        user.setId(userDomain.getId());
+        user.setFirstname(userDomain.getFirstname());
+        user.setEmail(userDomain.getEmail());
+        user.setPassword(userDomain.getPassword());
+
+        TaskEntity savedEntity = new TaskEntity();
+        savedEntity.setId(taskToUpdate.id());
+        savedEntity.setTitle(taskToUpdate.title());
+        savedEntity.setDescription(taskToUpdate.description());
+        savedEntity.setCompleted(taskToUpdate.completed());
+        savedEntity.setUser(user);
+
         when(taskRepository.findById(1L)).thenReturn(Optional.of(inputTask));
-        when(taskRepository.save(any(Task.class))).thenReturn(updateTask);
         when(userRepository.findById(1L)).thenReturn(Optional.of(userDomain));
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+        when(taskMapper.taskToTaskEntity(any(Task.class))).thenReturn(savedEntity);
+        when(springTaskRepository.save(any(TaskEntity.class))).thenReturn(savedEntity);
+        when(taskMapper.taskEntityToTaskDTO(any(TaskEntity.class))).thenReturn(taskToUpdate);
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+        TaskDTO response = taskService.update(taskToUpdate, 1L, userDetails);
 
-        Task result = taskService.update(updateTask, 1L, userDetails);
-
-        assertEquals("Test Updated", result.getTitle());
-        assertEquals(userDomain, result.getUser());
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertEquals("Test Updated", response.title()),
+                () -> assertEquals("Sample test updated", response.description()),
+                () -> assertEquals(userDomain.getId(), response.userId())
+        );
 
         verify(taskRepository, times(1)).findById(1L);
-        verify(taskRepository, times(1)).save(updateTask);
+        verify(userRepository, times(1)).findById(userDomain.getId());
         verify(securityConfig, times(1)).checkAccess(anyLong(), any(UserDetails.class));
+        verify(springTaskRepository, times(1)).save(savedEntity);
+        verify(taskMapper, times(1)).taskEntityToTaskDTO(savedEntity);
     }
 
     // Test that attempts to update a task that does not exist
     @Test
     void shouldNotUpdateTaskWhenTaskNotFound() {
 
-        Task updated = new Task(
+        taskToUpdate = createTaskDTOWithId(
                 99L,
                 "Test Updated",
                 "Simple test updated",
-                false,
-                userDomain
+                userDomain.getId()
         );
 
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        assertThrows(NotFoundException.class, () -> taskService.update(updated, 1L, userDetails));
+        assertThrows(NotFoundException.class, () -> taskService.update(taskToUpdate, 1L, userDetails));
 
         verify(taskRepository, times(1)).findById(99L);
         verify(taskRepository, never()).save(any());
@@ -347,6 +346,13 @@ class TaskServiceUnitTest {
     @Test
     void shouldNotUpdateTaskWhenUserDoesNotOwnTask() {
 
+        taskToUpdate = createTaskDTOWithId(
+                inputTask.getId(),
+                inputTask.getTitle(),
+                inputTask.getDescription(),
+                inputTask.getUser().getId()
+        );
+
         when(taskRepository.findById(1L)).thenReturn(Optional.of(inputTask));
         when(userRepository.findById(2L)).thenReturn(Optional.of(userDomain));
 
@@ -355,7 +361,7 @@ class TaskServiceUnitTest {
         doThrow(new ForbiddenException("Forbidden"))
                 .when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
 
-        assertThrows(ForbiddenException.class, () -> taskService.update(inputTask, 2L, userDetails));
+        assertThrows(ForbiddenException.class, () -> taskService.update(taskToUpdate, 2L, userDetails));
 
         verify(taskRepository, times(1)).findById(1L);
         verify(taskRepository, never()).save(any());
@@ -370,12 +376,26 @@ class TaskServiceUnitTest {
     @Test
     void shouldFindTaskByIdSuccessfully() {
 
+        TaskDTO task = createTaskDTOWithId(
+                inputTask.getId(),
+                inputTask.getTitle(),
+                inputTask.getDescription(),
+                userDomain.getId()
+        );
+
         when(taskRepository.findById(1L)).thenReturn(Optional.of(inputTask));
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+        when(taskMapper.taskToTaskDTO(any(Task.class))).thenReturn(task);
 
-        Optional<Task> foundTask = taskService.findById(1L);
+        UserDetails userDetails = mock(UserDetails.class);
 
-        assertTrue(foundTask.isPresent());
-        assertEquals("Test Task", foundTask.get().getTitle());
+        TaskDTO foundTask = taskService.findById(1L, userDetails);
+
+        assertAll(
+                () -> assertNotNull(foundTask),
+                () -> assertEquals(inputTask.getTitle(), foundTask.title()),
+                () -> assertEquals(inputTask.getDescription(), foundTask.description())
+        );
 
         verify(taskRepository, times(1)).findById(1L);
     }
@@ -386,9 +406,14 @@ class TaskServiceUnitTest {
 
         when(taskRepository.findById(99L)).thenReturn(Optional.empty());
 
-        Optional<Task> foundTask = taskService.findById(99L);
+        UserDetails userDetails = mock(UserDetails.class);
 
-        assertFalse(foundTask.isPresent());
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> taskService.findById(99L, userDetails)
+        );
+
+        assertEquals("Not found exception. Task not found", exception.getMessage());
 
         verify(taskRepository, times(1)).findById(99L);
     }
@@ -454,7 +479,9 @@ class TaskServiceUnitTest {
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        assertThrows(NotFoundException.class, () -> taskService.updateCompletionStatus(99L, true, userDetails));
+        assertThrows(
+                NotFoundException.class,
+                () -> taskService.updateCompletionStatus(99L, true, userDetails));
 
         verify(taskRepository, times(1)).findById(99L);
         verify(taskRepository, never()).save(any());
@@ -468,7 +495,9 @@ class TaskServiceUnitTest {
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        assertThrows(InvalidTaskCompleteException.class, () -> taskService.updateCompletionStatus(1L, false, userDetails));
+        assertThrows(
+                InvalidTaskCompleteException.class,
+                () -> taskService.updateCompletionStatus(1L, false, userDetails));
 
         verify(taskRepository, times(1)).findById(1L);
         verify(taskRepository, never()).save(any());
@@ -488,14 +517,11 @@ class TaskServiceUnitTest {
 
         List<Long> taskId = List.of(taskTwo.getId());
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.addTasksToUser(userDomain.getId(), taskId);
+        Map<String, List<String>> response = taskService.addTasksToUser(userDomain.getId(), taskId);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Task assigned successfully", response.getBody().getMessage()),
+                () -> assertTrue(response.get("errors").isEmpty()),
                 () -> assertEquals(userDomain, taskTwo.getUser())
         );
 
@@ -517,15 +543,13 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(2L, 3L, 4L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.addTasksToUser(userDomain.getId(), taskIds);
-
+        Map<String, List<String>> response = taskService.addTasksToUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("All tasks assigned successfully", response.getBody().getMessage())
+                () -> assertTrue(response.get("errors").isEmpty()),
+                () -> assertEquals(userDomain, taskTwo.getUser()),
+                () -> assertNotNull(taskThree.getUser())
         );
 
         verify(userRepository, times(2)).findById(userDomain.getId());
@@ -543,14 +567,13 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(3L, 11L, 10L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.addTasksToUser(userDomain.getId(), taskIds);
+        Map<String, List<String>> response = taskService.addTasksToUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Some assignments failed", response.getBody().getMessage())
+                () -> assertEquals(1, response.get("errors").size()),
+                () -> assertFalse(response.get("success").isEmpty()),
+                () -> assertEquals(userDomain.getId(), taskThree.getUser().getId())
         );
 
         verify(userRepository, times(2)).findById(userDomain.getId());
@@ -623,13 +646,12 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.addTasksToUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.addTasksToUsers(bulkTaskDTO);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertEquals("All tasks assigned successfully", response.getBody().getMessage())
+                () -> assertTrue(response.get("errors").isEmpty()),
+                () -> assertTrue(response.get("success").contains("Task 2 assigned to user 1"))
         );
 
         verify(userRepository, times(2)).findById(anyLong());
@@ -655,17 +677,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.addTasksToUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.addTasksToUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseData = response.getBody().getData();
-        List<String> errors = responseData.get("errors");
-        List<String> success = responseData.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertEquals("Some assignments failed", response.getBody().getMessage()),
+                () -> assertTrue(success.contains("Task 2 assigned to user 1")),
                 () -> assertEquals(1, errors.size()),
                 () -> assertTrue(errors.get(0).contains("User with id 99 not found")),
                 () -> assertEquals(2, success.size()),
@@ -698,17 +717,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.addTasksToUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.addTasksToUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseData = response.getBody().getData();
-        List<String> errors = responseData.get("errors");
-        List<String> success = responseData.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertEquals("Some assignments failed", response.getBody().getMessage()),
+                () -> assertTrue(success.contains("Task 2 assigned to user 1")),
                 () -> assertEquals(2, errors.size()),
                 () -> assertTrue(errors.get(0).contains("Task with id 98 not found")),
                 () -> assertEquals(2, success.size()),
@@ -744,17 +760,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.addTasksToUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.addTasksToUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseData = response.getBody().getData();
-        List<String> errors = responseData.get("errors");
-        List<String> success = responseData.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertEquals("Some assignments failed", response.getBody().getMessage()),
+                () -> assertTrue(success.contains("Task 5 assigned to user 1")),
                 () -> assertEquals(3, errors.size()),
                 () -> assertTrue(errors.stream().anyMatch(e -> e.contains("Task with id 98 not found"))),
                 () -> assertTrue(errors.stream().anyMatch(e -> e.contains("Task with id 97 not found"))),
@@ -785,14 +798,12 @@ class TaskServiceUnitTest {
 
         List<Long> taskId = List.of(3L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.unassignTasksFromUser(userDomain.getId(), taskId);
+        Map<String, List<String>> response = taskService.unassignTasksFromUser(userDomain.getId(), taskId);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody().getMessage()),
-                () -> assertEquals("Task removed successfully", response.getBody().getMessage()),
+                () -> assertTrue(response.get("errors").isEmpty()),
+                () -> assertTrue(response.get("success").contains("Task removed successfully")),
                 () -> assertNull(taskThree.getUser())
         );
 
@@ -817,14 +828,12 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(3L, 4L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
+        Map<String, List<String>> response = taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody().getMessage()),
-                () -> assertEquals("All tasks successfully unassigned", response.getBody().getMessage()),
+                () -> assertTrue(response.get("errors").isEmpty()),
+                () -> assertTrue(response.get("success").contains("Task 3 removed from user 1")),
                 () -> assertNull(taskThree.getUser()),
                 () -> assertNull(taskFour.getUser())
         );
@@ -848,14 +857,12 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(4L, 99L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
+        Map<String, List<String>> response = taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody().getMessage()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertEquals(1, response.get("errors").size()),
+                () -> assertTrue(response.get("success").contains("Task 4 removed from user 1")),
                 () -> assertNull(taskFour.getUser())
         );
 
@@ -879,14 +886,12 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(4L, 5L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
+        Map<String, List<String>> response = taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody().getMessage()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertEquals(1, response.get("errors").size()),
+                () -> assertTrue(response.get("success").contains("Task 4 removed from user 1")),
                 () -> assertNull(taskFour.getUser())
         );
 
@@ -951,14 +956,12 @@ class TaskServiceUnitTest {
 
         List<Long> taskIds = List.of(2L, 5L);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
-                taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
+        Map<String, List<String>> response = taskService.unassignTasksFromUser(userDomain.getId(), taskIds);
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertEquals(1, response.get("errors").size()),
+                () -> assertTrue(response.get("success").contains("Task 2 removed from user 1")),
                 () -> assertNull(taskTwo.getUser())
         );
 
@@ -999,18 +1002,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.unassignTasksFromUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.unassignTasksFromUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseDTO = response.getBody().getData();
-        List<String> errors = responseDTO.get("errors");
-        List<String> success = responseDTO.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("All tasks successfully unassigned", response.getBody().getMessage()),
+                () -> assertTrue(response.get("success").contains("Task 3 removed from user 1")),
                 () -> assertEquals(4, success.size()),
                 () -> assertTrue(errors.isEmpty()),
                 () -> assertNull(taskTwo.getUser()),
@@ -1047,18 +1046,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.unassignTasksFromUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.unassignTasksFromUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseDTO = response.getBody().getData();
-        List<String> errors = responseDTO.get("errors");
-        List<String> success = responseDTO.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertTrue(response.get("success").contains("Task 4 removed from user 3")),
                 () -> assertEquals(2, success.size()),
                 () -> assertTrue(success.contains("Task 4 removed from user 3")),
                 () -> assertEquals("Not found exception. User with id 99 not found", errors.get(0)),
@@ -1097,18 +1092,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.unassignTasksFromUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.unassignTasksFromUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseDTO = response.getBody().getData();
-        List<String> errors = responseDTO.get("errors");
-        List<String> success = responseDTO.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertTrue(response.get("success").contains("Task 3 removed from user 1")),
                 () -> assertEquals(2, success.size()),
                 () -> assertTrue(success.contains("Task 2 removed from user " +  userDomainTwo.getId())),
                 () -> assertEquals("Not found exception. Task with id 98 not found", errors.get(0)),
@@ -1151,18 +1142,14 @@ class TaskServiceUnitTest {
                 )
         );
 
-        ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> response =
-                taskService.unassignTasksFromUsers(bulkTaskDTO);
+        Map<String, List<String>> response = taskService.unassignTasksFromUsers(bulkTaskDTO);
 
-        Map<String, List<String>> responseDTO = response.getBody().getData();
-        List<String> errors = responseDTO.get("errors");
-        List<String> success = responseDTO.get("success");
+        List<String> errors = response.get("errors");
+        List<String> success = response.get("success");
 
         assertAll(
                 () -> assertNotNull(response),
-                () -> assertEquals(HttpStatus.OK, response.getStatusCode()),
-                () -> assertNotNull(response.getBody()),
-                () -> assertEquals("Some tasks could not be unassigned", response.getBody().getMessage()),
+                () -> assertTrue(response.get("success").contains("Task 3 removed from user 1")),
                 () -> assertEquals(3, success.size()),
                 () -> assertTrue(success.contains("Task 2 removed from user " +  userDomainTwo.getId())),
                 () -> assertEquals("Not found exception. Task with id 98 not found", errors.get(0)),
