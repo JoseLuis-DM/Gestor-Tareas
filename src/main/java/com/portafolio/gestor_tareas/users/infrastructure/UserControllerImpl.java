@@ -3,11 +3,13 @@ package com.portafolio.gestor_tareas.users.infrastructure;
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
 import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.dto.ApiResponseFactory;
+import com.portafolio.gestor_tareas.exception.domain.BadRequestException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserService;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserResponseDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @RestController
@@ -50,15 +53,9 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PostMapping
-    public ResponseEntity<ApiResponseDTO<UserDTO>> register(
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> register(
             @Valid @RequestBody UserDTO userDTO) {
-
-        User user = userMapper.userDTOToUser(userDTO);
-
-        User register = userService.register(user);
-
-        UserDTO registerDTO = userMapper.userToUserDTO(register);
-
+        UserResponseDTO registerDTO = userService.register(userDTO);
         return ApiResponseFactory.created(registerDTO, "User created successfully");
     }
 
@@ -73,18 +70,10 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @PutMapping
-    public ResponseEntity<ApiResponseDTO<UserDTO>> update(
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> update(
             @Valid @RequestBody UserDTO userDTO,
             @AuthenticationPrincipal UserDetails userDetails) {
-
-        securityConfig.checkAccess(userDTO.getId(), userDetails);
-
-        User user = userMapper.userDTOToUser(userDTO);
-
-        User updatedUser = userService.update(user);
-
-        UserDTO updateDTO = userMapper.userToUserDTO(updatedUser);
-
+        UserResponseDTO updateDTO = userService.update(userDTO, userDetails);
         return ApiResponseFactory.success(updateDTO, "User updated successfully");
     }
 
@@ -99,17 +88,12 @@ public class UserControllerImpl implements UserController{
             @ApiResponse(responseCode = "500", ref = "#/components/responses/InternalError")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponseDTO<UserDTO>> findById(
+    public ResponseEntity<ApiResponseDTO<UserResponseDTO>> findById(
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails)
-            throws NotFoundException {
-
-        securityConfig.checkAccess(id, userDetails);
-
-        User user = userService.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        UserDTO userDTO = userMapper.userToUserDTO(user);
+            throws NotFoundException
+    {
+        UserResponseDTO userDTO = userService.findById(id, userDetails);
         return ApiResponseFactory.success(userDTO, "User found");
     }
 
@@ -123,11 +107,8 @@ public class UserControllerImpl implements UserController{
     })
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponseDTO<List<UserDTO>>> findAll() {
-
-        List<UserDTO> userDTOS = userService.findAll().stream()
-                .map(userMapper::userToUserDTO).toList();
-
+    public ResponseEntity<ApiResponseDTO<List<UserResponseDTO>>> findAll() {
+        List<UserResponseDTO> userDTOS = userService.findAll();
         return ApiResponseFactory.success(userDTOS, "Users found");
     }
 
@@ -207,8 +188,12 @@ public class UserControllerImpl implements UserController{
             @RequestParam boolean allPermissions,
             @RequestBody(required = false) Set<Permission> permissions
     ) {
+        if (!allPermissions && (permissions == null || permissions.isEmpty())) {
+            throw new BadRequestException("You must specify which permissions you want to remove or remove all.");
+        }
 
-        return userService.deletePermissions(id, null, allPermissions, permissions);
+        Map<String, Object> response = userService.deletePermissions(id, null, allPermissions, permissions);
+        return ApiResponseFactory.success(response, "Permissions updated successfully");
     }
 
     @Operation(summary = "Delete permissions by email",
@@ -227,8 +212,12 @@ public class UserControllerImpl implements UserController{
             @RequestParam boolean allPermissions,
             @RequestBody(required = false) Set<Permission> permissions
     ) {
+        if (!allPermissions && (permissions == null || permissions.isEmpty())) {
+            throw new BadRequestException("You must specify which permissions you want to remove or remove all.");
+        }
 
-        return userService.deletePermissions(null, email, allPermissions, permissions);
+        Map<String, Object> response = userService.deletePermissions(null, email, allPermissions, permissions);
+        return ApiResponseFactory.success(response, "Permissions updated successfully");
     }
 
     @Operation(summary = "List user permissions by ID",
@@ -267,6 +256,11 @@ public class UserControllerImpl implements UserController{
     public ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> showAllUsersWithPermissions(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        return userService.showAllUsersWithPermissions(userDetails);
+        List<UserWithPermissionsDTO> users = userService.showAllUsersWithPermissions(userDetails);
+
+        if (users.isEmpty()) {
+            return ApiResponseFactory.noContent("No users with assigned permissions were found");
+        }
+        return ApiResponseFactory.success(users, "Users with permissions found");
     }
 }

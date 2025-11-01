@@ -1,7 +1,6 @@
 package com.portafolio.gestor_tareas.user.unit;
 
 import com.portafolio.gestor_tareas.config.infrastructure.SecurityConfig;
-import com.portafolio.gestor_tareas.dto.ApiResponseDTO;
 import com.portafolio.gestor_tareas.exception.domain.BadRequestException;
 import com.portafolio.gestor_tareas.exception.domain.NotFoundException;
 import com.portafolio.gestor_tareas.users.application.UserServiceImpl;
@@ -9,16 +8,18 @@ import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.Role;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserResponseDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
+import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
@@ -34,6 +35,9 @@ class UserServiceUnitTest {
     private UserRepository userRepository;
 
     @Mock
+    private SpringUserRepository springUserRepository;
+
+    @Mock
     private SecurityConfig securityConfig;
 
     @Mock
@@ -46,6 +50,7 @@ class UserServiceUnitTest {
     private Set<Permission> newPermissions;
     private User userWithPermissions;
     private User userWithTwoPermissions;
+    private UserEntity userEntity;
 
     @BeforeEach
     void setUp() {
@@ -102,23 +107,61 @@ class UserServiceUnitTest {
     @Test
     void shouldSaveUserSuccessfully() {
 
+        UserDTO userDTO = new UserDTO();
+        userDTO.setFirstname(inputUser.getFirstname());
+        userDTO.setLastname(inputUser.getLastname());
+        userDTO.setEmail(inputUser.getEmail());
+        userDTO.setPassword(inputUser.getPassword());
+        userDTO.setRole(inputUser.getRole());
+
+        userEntity = new UserEntity();
+        userEntity.setFirstname(inputUser.getFirstname());
+        userEntity.setLastname(inputUser.getLastname());
+        userEntity.setEmail(inputUser.getEmail());
+        userEntity.setPassword(inputUser.getPassword());
+        userEntity.setRole(inputUser.getRole());
+
+        UserResponseDTO userResponseDTO = new UserResponseDTO(
+                null,
+                inputUser.getFirstname(),
+                inputUser.getLastname(),
+                inputUser.getEmail(),
+                inputUser.getRole(),
+                inputUser.getPermissions()
+        );
+
+        when(userMapper.userDTOToUser(userDTO)).thenReturn(inputUser);
         when(userRepository.existsEmail("test@example.com")).thenReturn(false);
-        when(userRepository.save(inputUser)).thenReturn(inputUser);
+        when(userMapper.userToUserEntity(inputUser)).thenReturn(userEntity);
+        when(springUserRepository.save(userEntity)).thenReturn(userEntity);
+        when(userMapper.userEntityToUserResponseDTO(userEntity)).thenReturn(userResponseDTO);
 
-        User result = userService.register(inputUser);
+        UserResponseDTO result = userService.register(userDTO);
 
-        assertEquals(inputUser, result);
+        assertNotNull(result);
+        assertEquals("test@example.com", result.getEmail());
+
+        verify(userMapper, times(1)).userDTOToUser(userDTO);
         verify(userRepository, times(1)).existsEmail("test@example.com");
-        verify(userRepository, times(1)).save(inputUser);
+        verify(userMapper, times(1)).userToUserEntity(inputUser);
+        verify(springUserRepository, times(1)).save(userEntity);
+        verify(userMapper, times(1)).userEntityToUserResponseDTO(userEntity);
     }
 
     // Test that validates that a duplicate email cannot be registered
     @Test
     void shouldThrowExceptionWhenEmailAlreadyExist() {
 
+        UserDTO userDTO = new UserDTO();
+        userDTO.setFirstname(inputUser.getFirstname());
+        userDTO.setLastname(inputUser.getLastname());
+        userDTO.setEmail(inputUser.getEmail());
+        userDTO.setPassword(inputUser.getPassword());
+        userDTO.setRole(inputUser.getRole());
+
         when(userRepository.existsEmail("test@example.com")).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> userService.register(inputUser));
+        assertThrows(RuntimeException.class, () -> userService.register(userDTO));
 
         verify(userRepository, times(1)).existsEmail("test@example.com");
         verify(userRepository, never()).save(any());
@@ -143,34 +186,80 @@ class UserServiceUnitTest {
                 List.of()
         );
 
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(updateUser.getId());
+        userDTO.setFirstname(updateUser.getFirstname());
+        userDTO.setLastname(updateUser.getLastname());
+        userDTO.setEmail(updateUser.getEmail());
+        userDTO.setPassword(updateUser.getPassword());
+        userDTO.setRole(updateUser.getRole());
+
+        UserResponseDTO userResponseDTO = new UserResponseDTO(
+                userDTO.getId(),
+                userDTO.getFirstname(),
+                userDTO.getLastname(),
+                userDTO.getEmail(),
+                userDTO.getRole(),
+                userDTO.getPermissions()
+        );
+
+        userEntity = new UserEntity();
+        userEntity.setId(updateUser.getId());
+        userEntity.setFirstname(updateUser.getFirstname());
+        userEntity.setLastname(updateUser.getLastname());
+        userEntity.setEmail(updateUser.getEmail());
+        userEntity.setRole(updateUser.getRole());
+        userEntity.setPermissions(updateUser.getPermissions());
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(inputUser));
-        when(userService.register(updateUser)).thenReturn(updateUser);
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+        when(userRepository.existsEmail("test@example.com")).thenReturn(false);
+        when(userMapper.userToUserEntity(updateUser)).thenReturn(userEntity);
+        when(springUserRepository.save(userEntity)).thenReturn(userEntity);
+        when(userMapper.userEntityToUserResponseDTO(userEntity)).thenReturn(userResponseDTO);
 
-        User result = userService.update(updateUser);
+        UserDetails userDetails = mock(UserDetails.class);
 
+        UserResponseDTO result = userService.update(userDTO, userDetails);
+
+        assertNotNull(result);
         assertEquals("Updated", result.getFirstname());
-        verify(userRepository, times(1)).findById(1L);
-        verify(userRepository, times(1)).save(updateUser);
+
+        verify(userRepository, times(1)).findById(inputUser.getId());
+        verify(userRepository, times(1)).existsEmail("test@example.com");
+        verify(userMapper, times(1)).userToUserEntity(updateUser);
+        verify(springUserRepository, times(1)).save(userEntity);
+        verify(userMapper, times(1)).userEntityToUserResponseDTO(userEntity);
     }
 
     // Test that attempts to update a user that does not exist
     @Test
     void shouldThrowExceptionWhenUpdatingNonexistentUser() {
 
-        User updatedUser = new User(
+        UserDTO updatedUser = new UserDTO(
                 99L,
                 "Updated",
                 "test@example.com",
                 "123456",
                 "Full Name",
                 Role.USER,
-                Set.of(),
-                List.of()
+                new ArrayList<>(),
+                new HashSet<>()
         );
 
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.update(updatedUser));
+        UserDetails userDetails = mock(UserDetails.class);
+
+
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userService.update(updatedUser, userDetails)
+        );
+
+        assertNotNull(exception);
+        assertEquals("Not found exception. User not found", exception.getMessage());
+
         verify(userRepository, times(1)).findById(99L);
         verify(userRepository, never()).save(any());
     }
@@ -183,13 +272,28 @@ class UserServiceUnitTest {
     @Test
     void shouldFindUserById() {
 
+        UserResponseDTO userResponseDTO = new UserResponseDTO(
+                inputUser.getId(),
+                inputUser.getFirstname(),
+                inputUser.getLastname(),
+                inputUser.getEmail(),
+                inputUser.getRole(),
+                inputUser.getPermissions()
+        );
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(inputUser));
+        doNothing().when(securityConfig).checkAccess(anyLong(), any(UserDetails.class));
+        when(userMapper.userToUserResponseDTO(inputUser)).thenReturn(userResponseDTO);
 
-        Optional<User> foundUser = userService.findById(1L);
+        UserDetails userDetails = mock(UserDetails.class);
 
-        assertTrue(foundUser.isPresent());
-        assertEquals("test@example.com", foundUser.get().getEmail());
+        UserResponseDTO foundUser = userService.findById(1L, userDetails);
+
+        assertNotNull(foundUser);
+        assertEquals("test@example.com", foundUser.getEmail());
+
         verify(userRepository, times(1)).findById(1L);
+        verify(userMapper, times(1)).userToUserResponseDTO(inputUser);
     }
 
     // Test that validates that a user was not found because it does not exist
@@ -198,9 +302,16 @@ class UserServiceUnitTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
-        Optional<User> foundUser = userService.findById(2L);
+        UserDetails userDetails = mock(UserDetails.class);
 
-        assertFalse(foundUser.isPresent());
+        NotFoundException exception = assertThrows(
+                NotFoundException.class,
+                () -> userService.findById(2L, userDetails)
+        );
+
+        assertNotNull(exception);
+        assertEquals("Not found exception. User not found", exception.getMessage());
+
         verify(userRepository, times(1)).findById(2L);
     }
 
@@ -287,17 +398,17 @@ class UserServiceUnitTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(userWithPermissions));
         when(userRepository.save(any(User.class))).thenReturn(userWithPermissions);
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+        Map<String, Object> response =
                 userService.deletePermissions(2L, null, true, null);
+
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertThat(userWithPermissions.getPermissions()).isNull(),
+                () -> assertNull(response.get("notFound"))
+        );
 
         verify(userRepository, times(1)).findById(2L);
         verify(userRepository, times(1)).save(userWithPermissions);
-
-        assertThat(userWithPermissions.getPermissions()).isNull();
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("All permissions removed successfully");
-        assertThat(response.getBody().getData()).isNull();
     }
 
     // Test where permissions are removed from a user based on their userId
@@ -312,17 +423,17 @@ class UserServiceUnitTest {
                 Permission.TASK_READ
         ));
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+        Map<String, Object> response =
                 userService.deletePermissions(2L, null, false, permissions);
+
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertNotNull(response.get("removed")),
+                () -> assertEquals(permissions, response.get("removed"))
+        );
 
         verify(userRepository, times(1)).findById(2L);
         verify(userRepository, times(1)).save(userWithPermissions);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Permissions removed successfully");
-        assertThat(response.getBody().getData()).isNotNull();
-        assertThat(response.getBody().getData().get("removed")).isEqualTo(permissions);
     }
 
     // Test where permissions are removed from a user based on their email
@@ -337,17 +448,17 @@ class UserServiceUnitTest {
                 Permission.TASK_WRITE
         ));
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+        Map<String, Object> response =
                 userService.deletePermissions(null, "testuser@example.com", false, permissions);
+
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertNotNull(response.get("removed")),
+                () -> assertEquals(permissions, response.get("removed"))
+        );
 
         verify(userRepository, times(1)).findByEmail("testuser@example.com");
         verify(userRepository, times(1)).save(userWithPermissions);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Permissions removed successfully");
-        assertThat(response.getBody().getData()).isNotNull();
-        assertThat(response.getBody().getData().get("removed")).isEqualTo(permissions);
     }
 
     // Test where permissions are removed from a user who did not have some permissions
@@ -362,16 +473,17 @@ class UserServiceUnitTest {
                 Permission.TASK_WRITE
         ));
 
-        ResponseEntity<ApiResponseDTO<Map<String, Object>>> response =
+        Map<String, Object> response =
                 userService.deletePermissions(3L, null, false, permissions);
+
+        assertAll(
+                () -> assertNotNull(response),
+                () -> assertTrue(response.containsKey("removed")),
+                () -> assertTrue(response.containsKey("notFound"))
+        );
 
         verify(userRepository, times(1)).findById(3L);
         verify(userRepository, times(1)).save(userWithTwoPermissions);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Some permissions were not found for this user");
-        assertThat(response.getBody().getData()).isNotNull();
     }
 
     // Test where an attempt was made to remove permissions from a user that does not exist
@@ -466,15 +578,12 @@ class UserServiceUnitTest {
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> response =
-                userService.showAllUsersWithPermissions(userDetails);
+        List<UserWithPermissionsDTO> response = userService.showAllUsersWithPermissions(userDetails);
 
         verify(securityConfig).checkAdminAccess(userDetails);
         verify(userRepository).findAll();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getMessage()).isEqualTo("Users with permissions found");
+        assertNotNull(response);
     }
 
     // Test that validates that there are no users with their permissions
@@ -483,13 +592,12 @@ class UserServiceUnitTest {
 
         UserDetails userDetails = mock(UserDetails.class);
 
-        ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> response =
-                userService.showAllUsersWithPermissions(userDetails);
+        List<UserWithPermissionsDTO> response = userService.showAllUsersWithPermissions(userDetails);
 
         verify(securityConfig).checkAdminAccess(userDetails);
         verify(userRepository).findAll();
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        assertThat(response.getBody().getMessage()).isEqualTo("No users with assigned permissions were found");
+
+        assertNotNull(response);
     }
 }
