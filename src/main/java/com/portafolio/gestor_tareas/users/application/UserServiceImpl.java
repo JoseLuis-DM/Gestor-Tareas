@@ -11,8 +11,12 @@ import com.portafolio.gestor_tareas.users.domain.Permission;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.domain.UserRepository;
 import com.portafolio.gestor_tareas.users.domain.UserService;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserResponseDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import com.portafolio.gestor_tareas.users.infrastructure.mapper.UserMapper;
+import com.portafolio.gestor_tareas.users.infrastructure.repository.SpringUserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +30,7 @@ import java.util.*;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final SpringUserRepository springUserRepository;
     private final SecurityConfig securityConfig;
     private final UserMapper userMapper;
 
@@ -36,50 +41,67 @@ public class UserServiceImpl implements UserService {
     private boolean existUser;
 
     @Override
-    public User register(User user) {
+    public UserResponseDTO register(UserDTO userDTO) {
 
-        existUser = userRepository.existsEmail(user.getEmail());
+        user = userMapper.userDTOToUser(userDTO);
+
+        existUser = userRepository.existsEmail(userDTO.getEmail());
 
         if (existUser) {
             throw new UserAlreadyExistsException("The email is already registered");
         }
 
-        return userRepository.save(user);
+        UserEntity savedEntity = springUserRepository.save(userMapper.userToUserEntity(user));
+
+        return userMapper.userEntityToUserResponseDTO(savedEntity);
     }
 
     @Override
-    public User update(User user) {
-        User updateUser = userRepository.findById(user.getId())
+    public UserResponseDTO update(UserDTO userDTO, UserDetails userDetails) {
+
+        User updateUser = userRepository.findById(userDTO.getId())
                 .orElseThrow(() -> new NotFoundException(NOT_FOUND));
 
-        existUser = userRepository.existsEmail(user.getEmail());
+        securityConfig.checkAccess(userDTO.getId(), userDetails);
 
-        if (!updateUser.getEmail().equals(user.getEmail()) &&
+        existUser = userRepository.existsEmail(userDTO.getEmail());
+
+        if (!updateUser.getEmail().equals(userDTO.getEmail()) &&
                 existUser) {
             throw new UserAlreadyExistsException("The email is already registered by another user");
         }
 
-        if (user.getFirstname() == null || user.getFirstname().isEmpty()
-                || user.getLastname() == null || user.getLastname().isEmpty()) {
+        if (userDTO.getFirstname() == null || userDTO.getFirstname().isEmpty()
+                || userDTO.getLastname() == null || userDTO.getLastname().isEmpty()) {
             throw new BadRequestException("The first and last name cannot be empty or null");
         }
 
-        updateUser.setFirstname(user.getFirstname());
-        updateUser.setLastname(user.getLastname());
-        updateUser.setEmail(user.getEmail());
-        updateUser.setPassword(user.getPassword());
+        updateUser.setFirstname(userDTO.getFirstname());
+        updateUser.setLastname(userDTO.getLastname());
+        updateUser.setEmail(userDTO.getEmail());
+        updateUser.setPassword(userDTO.getPassword());
 
-        return userRepository.save(updateUser);
+        UserEntity savedEntity = springUserRepository.save(userMapper.userToUserEntity(updateUser));
+
+        return userMapper.userEntityToUserResponseDTO(savedEntity);
     }
 
     @Override
-    public Optional<User> findById(Long id) throws NotFoundException {
-        return userRepository.findById(id);
+    public UserResponseDTO findById(Long id, UserDetails userDetails) throws NotFoundException {
+
+        user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(NOT_FOUND));
+
+        securityConfig.checkAccess(id, userDetails);
+
+        return userMapper.userToUserResponseDTO(user);
     }
 
     @Override
-    public List<User> findAll() {
-        return userRepository.findAll();
+    public List<UserResponseDTO> findAll() {
+
+        return userRepository.findAll().stream()
+                .map(userMapper::userToUserResponseDTO).toList();
     }
 
     @Override
@@ -113,7 +135,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deletePermissions(
+    public Map<String, Object> deletePermissions(
             Long userId,
             String email,
             boolean allPermissions,
@@ -135,10 +157,13 @@ public class UserServiceImpl implements UserService {
         if (allPermissions) {
             user.setPermissions(null);
             userRepository.save(user);
-            return ApiResponseFactory.success(null, "All permissions removed successfully");
-        } else {
-            return deleteSpecificPermissions(permissions, user);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("removedAll", true);
+            return response;
         }
+
+        return deleteSpecificPermissions(permissions, user);
     }
 
     @Transactional
@@ -153,24 +178,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<List<UserWithPermissionsDTO>>> showAllUsersWithPermissions(
-            UserDetails userDetails
-    ) {
+    public List<UserWithPermissionsDTO> showAllUsersWithPermissions(UserDetails userDetails) {
 
         securityConfig.checkAdminAccess(userDetails);
 
         List<User> users = userRepository.findAll();
 
-        List<UserWithPermissionsDTO> usersDTO = userMapper.userToUserWithPermissionsDTOs(users);
-
-        if (usersDTO.isEmpty()) {
-            return ApiResponseFactory.noContent("No users with assigned permissions were found");
-        }
-
-        return ApiResponseFactory.success(usersDTO, "Users with permissions found");
+        return userMapper.userToUserWithPermissionsDTOs(users);
     }
 
-    public ResponseEntity<ApiResponseDTO<Map<String, Object>>> deleteSpecificPermissions(
+    public Map<String, Object> deleteSpecificPermissions(
             Set<Permission> permissions,
             User user
     ) {
@@ -180,12 +197,13 @@ public class UserServiceImpl implements UserService {
         }
 
         Set<Permission> permissionsUser = new HashSet<>(user.getPermissions());
-        Set<Permission> notFoundPermissions = new HashSet<>();
-        Set<Permission> removedPermissions = new HashSet<>();
 
-        if (permissionsUser == null || permissionsUser.isEmpty()) {
+        if (permissionsUser.isEmpty()) {
             throw new UserDontHavePermissionsException("The user does not have permissions");
         }
+
+        Set<Permission> notFoundPermissions = new HashSet<>();
+        Set<Permission> removedPermissions = new HashSet<>();
 
         for (Permission permission : permissions) {
             if (permissionsUser.remove(permission)) {
@@ -199,14 +217,9 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         Map<String, Object> response = new HashMap<>();
-
         response.put("removed", removedPermissions);
         response.put("notFound", notFoundPermissions);
 
-        if (!notFoundPermissions.isEmpty()) {
-            return ApiResponseFactory.warning(response, "Some permissions were not found for this user");
-        }
-
-        return ApiResponseFactory.success(response, "Permissions removed successfully");
+        return response;
     }
 }

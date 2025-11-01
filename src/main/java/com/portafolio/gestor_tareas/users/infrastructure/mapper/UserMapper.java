@@ -3,6 +3,7 @@ package com.portafolio.gestor_tareas.users.infrastructure.mapper;
 import com.portafolio.gestor_tareas.auth.infrastructure.RegisterRequest;
 import com.portafolio.gestor_tareas.users.domain.User;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserDTO;
+import com.portafolio.gestor_tareas.users.infrastructure.dto.UserResponseDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.dto.UserWithPermissionsDTO;
 import com.portafolio.gestor_tareas.users.infrastructure.entity.UserEntity;
 import org.mapstruct.Builder;
@@ -43,6 +44,10 @@ public interface UserMapper {
 
         return user;
     }
+
+    UserResponseDTO userEntityToUserResponseDTO(UserEntity userEntity);
+
+    UserResponseDTO userToUserResponseDTO(User user);
 
     User registerRequestToUser(RegisterRequest registerRequest);
 

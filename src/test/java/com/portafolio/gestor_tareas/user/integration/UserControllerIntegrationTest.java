@@ -445,7 +445,7 @@ class UserControllerIntegrationTest {
                         .param("allPermissions", "true")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("All permissions removed successfully"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where some permissions are removed from a user by their user ID
@@ -464,7 +464,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Permissions removed successfully"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where you try to remove some permissions and not others because the user does not have them
@@ -483,8 +483,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(
-                        "Some permissions were not found for this user"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where you try to remove permissions from a user who does not have permissions
@@ -564,7 +563,7 @@ class UserControllerIntegrationTest {
                         .param("allPermissions", "true")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("All permissions removed successfully"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where some permissions are removed from a user by their email
@@ -581,7 +580,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Permissions removed successfully"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where you try to remove some permissions and not others because the user does not have them
@@ -598,8 +597,7 @@ class UserControllerIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(permissions)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(
-                        "Some permissions were not found for this user"));
+                .andExpect(jsonPath("$.message").value("Permissions updated successfully"));
     }
 
     // Test where you try to remove permissions from a user who does not have permissions
