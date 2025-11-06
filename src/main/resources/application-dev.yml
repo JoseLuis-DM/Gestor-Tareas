@@ -18,3 +18,20 @@ app:
 
 jwt:
   secret: ${JWT_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+
+  metrics:
+    enable:
+      jvm: true
+      process: true
+      system: true
+    tags:
+      application: gestor-app

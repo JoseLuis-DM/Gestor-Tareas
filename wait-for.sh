@@ -1,15 +1,20 @@
 #!/bin/sh
+# wait-for.sh
 
-HOST=$1
-PORT=$2
+set -e
+
+host="$1"
+port="$2"
 shift 2
 
-echo "Esperando a $HOST:$PORT..."
-
-while ! nc -z $HOST $PORT; do
-  sleep 1
+echo "Esperando a $host:$port..."
+until nc -z "$host" "$port"; do
+  sleep 2
 done
+echo "¡$host:$port está listo!"
 
-echo "¡$HOST:$PORT está listo!"
+if [ "$1" = "--" ]; then
+  shift
+fi
 
 exec "$@"

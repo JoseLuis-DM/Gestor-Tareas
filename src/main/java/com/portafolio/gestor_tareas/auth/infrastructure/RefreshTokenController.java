@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("api/auth")
 @RequiredArgsConstructor
 @Tag(name = "Authentication", description = "Endpoints for authentication and token management")
+@Slf4j
 public class RefreshTokenController {
 
     private final RefreshTokenService refreshTokenService;
@@ -63,11 +65,10 @@ public class RefreshTokenController {
     })
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> refreshToken(@RequestBody RefreshTokenRequest request) {
-
+        log.info("POST /api/auth/refresh-token - new refresh token");
         String newAccessToken = refreshTokenService.generateNewAccessToken(request.refreshToken);
-
         RefreshTokenResponse response = new RefreshTokenResponse(newAccessToken, request.refreshToken);
-
+        log.info("Refreshtoken successfully");
         return ApiResponseFactory.success(response, "Token successfully renewed");
     }
 
@@ -81,7 +82,9 @@ public class RefreshTokenController {
     })
     @PostMapping("/logout")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logout(@RequestBody RefreshTokenRequest request) {
+        log.warn("POST /api/auth/logout - logout by refreshtoken");
         refreshTokenService.revokeByToken(request.refreshToken);
+        log.info("Logout successfully");
         return ApiResponseFactory.success(null, "Logout successful");
     }
 
@@ -95,12 +98,13 @@ public class RefreshTokenController {
     })
     @PostMapping("/logout-all")
     public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> logoutAll(
-            @AuthenticationPrincipal UserDetails userDetails) {
-
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.warn("POST /api/auth/logout-all - logout by id");
         UserEntity user = springUserRepository.findByEmail(userDetails.getUsername())
                         .orElseThrow(() -> new NotFoundException("User not found"));
-
         refreshTokenService.revokeByUserId(user.getId());
+        log.info("Global logout successfully");
         return ApiResponseFactory.success(null, "Successful global logout");
     }
 }

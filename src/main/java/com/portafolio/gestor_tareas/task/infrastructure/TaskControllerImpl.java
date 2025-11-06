@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,6 +29,7 @@ import java.util.Map;
 @SecurityRequirement(name = "Bearer Authentication")
 @Tag(name = "Task", description = "The Task API. Contains all operation on tasks")
 @RequiredArgsConstructor
+@Slf4j
 public class TaskControllerImpl implements TaskController{
 
     private final TaskService taskService;
@@ -47,7 +49,9 @@ public class TaskControllerImpl implements TaskController{
     @PreAuthorize("hasAuthority('TASK_WRITE')")
     @PostMapping
     public ResponseEntity<ApiResponseDTO<TaskDTO>> register(@Valid @RequestBody TaskDTO taskDTO) {
+        log.info("POST /api/task - creating new task: {}", taskDTO.title());
         TaskDTO registerTask = taskService.save(taskDTO);
+        log.info("Task created successfully with id {}", registerTask.id());
         return ApiResponseFactory.created(registerTask, "Task created successfully");
     }
 
@@ -68,8 +72,10 @@ public class TaskControllerImpl implements TaskController{
             @Valid @RequestBody TaskDTO taskDTO,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        log.info("PUT /api/task - updating task {}", taskDTO.title());
         Long userId = securityUtils.getCurrentUserId();
         TaskDTO updatedTask = taskService.update(taskDTO, userId, userDetails);
+        log.info("Task {} updated successfully", updatedTask.id());
         return ApiResponseFactory.success(updatedTask, "Task updated successfully");
     }
 
@@ -89,7 +95,9 @@ public class TaskControllerImpl implements TaskController{
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        log.info("GET /api/task/{} - fetching task details", id);
         TaskDTO taskDTO = taskService.findById(id, userDetails);
+        log.debug("Fetched task: {}", taskDTO);
         return ApiResponseFactory.success(taskDTO, "Task found");
     }
 
@@ -104,8 +112,10 @@ public class TaskControllerImpl implements TaskController{
     @PreAuthorize("hasAuthority('TASK_READ')")
     @GetMapping
     public ResponseEntity<ApiResponseDTO<List<TaskDTO>>> findAll(@AuthenticationPrincipal UserDetails userDetails) {
+        log.info("GET /api/task - fetching all tasks");
         Long currentUserId = securityUtils.getCurrentUserId();
         List<TaskDTO> taskDTO = taskService.findAll(currentUserId, userDetails);
+        log.debug("Fetched {} tasks", taskDTO.size());
         return ApiResponseFactory.success(taskDTO, "Tasks found");
     }
 
@@ -124,7 +134,9 @@ public class TaskControllerImpl implements TaskController{
             @PathVariable Long id,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        log.warn("DELETE /api/task/{} - deleting task", id);
         taskService.delete(id, userDetails);
+        log.info("Task {} deleted successfully", id);
         return ApiResponseFactory.success(null, "Task deleted");
     }
 
@@ -145,8 +157,10 @@ public class TaskControllerImpl implements TaskController{
             @RequestParam boolean completed,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+        log.info("PATCH /api/task/{}/complete - updating task", id);
         taskService.updateCompletionStatus(id, completed, userDetails);
         String message = completed ? "Task marked as completed" : "Task marked as not completed";
+        log.info("Task {} status completed, updated successfully", id);
         return ApiResponseFactory.success(null, message);
     }
 
@@ -165,6 +179,7 @@ public class TaskControllerImpl implements TaskController{
             @PathVariable Long userId,
             @RequestBody List<Long> taskIds
     ) {
+        log.info("POST /api/task/users/{} - add task to users", userId);
         Map<String, List<String>> result = taskService.addTasksToUser(userId, taskIds);
         List<String> errors = result.get("errors");
         String message;
@@ -176,6 +191,7 @@ public class TaskControllerImpl implements TaskController{
         } else {
             message = "Some assignments failed";
         }
+        log.info("Tasks added to user {}", userId);
         return ApiResponseFactory.success(null, message);
     }
 
@@ -193,11 +209,13 @@ public class TaskControllerImpl implements TaskController{
     public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> addTasksToUsers(
             @RequestBody BulkTaskDTO bulkTaskDTO
     ) {
+        log.info("POST /api/task/users - add tasks to users");
         Map<String, List<String>> result = taskService.addTasksToUsers(bulkTaskDTO);
 
         String message = result.get("errors").isEmpty()
                 ? "All tasks assigned successfully"
                 : "Some assignments failed";
+        log.info("Tasks assigned successfully");
         return ApiResponseFactory.success(result, message);
     }
 
@@ -217,6 +235,7 @@ public class TaskControllerImpl implements TaskController{
             @PathVariable Long userId,
             @RequestBody List<Long> taskIds
     ) {
+        log.warn("DELETE /api/task/users/{} - unassing task from user", userId);
         Map<String, List<String>> result = taskService.unassignTasksFromUser(userId, taskIds);
         List<String> errors = result.get("errors");
         String message;
@@ -228,6 +247,7 @@ public class TaskControllerImpl implements TaskController{
         } else {
             message = "Some tasks could not be unassigned";
         }
+        log.info("Task removed successfully from user {}", userId);
         return ApiResponseFactory.success(null, message);
     }
 
@@ -246,11 +266,13 @@ public class TaskControllerImpl implements TaskController{
     public ResponseEntity<ApiResponseDTO<Map<String, List<String>>>> unassignTasksFromUsers(
             @RequestBody BulkTaskDTO bulkTaskDTO
     ) {
+        log.warn("DELETE /api/task/users - unassing tasks from users");
         Map<String, List<String>> result = taskService.unassignTasksFromUsers(bulkTaskDTO);
 
         String message = result.get("errors").isEmpty()
                 ? "All tasks successfully unassigned"
                 : "Some tasks could not be unassigned";
+        log.info("All task successfully unassigned");
         return ApiResponseFactory.success(result, message);
     }
 }
