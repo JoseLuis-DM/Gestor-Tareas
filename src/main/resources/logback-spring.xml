@@ -1,0 +1,12 @@
+<configuration>
+    <!-- Prints logs in JSON -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"app":"gestor-tareas","env":"docker"}</customFields>
+        </encoder>
+    </appender>
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+    <logger name="com.portafolio.gestor_tareas" level="DEBUG"/>
+</configuration>

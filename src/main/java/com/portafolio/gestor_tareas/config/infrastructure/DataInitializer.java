@@ -19,7 +19,7 @@ public class DataInitializer implements CommandLineRunner {
     private final SpringUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("{app.admin.password:admin123}")
+    @Value("${app.admin.password:admin123}")
     private String adminPassword;
 
     @Override

@@ -1,0 +1,136 @@
+{
+  "id": null,
+  "title": "Spring Boot - Gestor de Tareas",
+  "tags": ["spring-boot", "prometheus", "loki"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Requests por segundo",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_count{job=\"spring-boot\", uri!~\".*actuator.*\"}[1m])",
+          "legendFormat": "{{method}} {{uri}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tiempo promedio de respuesta (ms)",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_sum{job=\"spring-boot\"}[1m]) / rate(http_server_requests_seconds_count{job=\"spring-boot\"}[1m]) * 1000",
+          "legendFormat": "{{method}} {{uri}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "milliseconds" } },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de memoria JVM (MB)",
+      "targets": [
+        {
+          "expr": "jvm_memory_used_bytes{job=\"spring-boot\", area=\"heap\"} / 1024 / 1024",
+          "legendFormat": "{{id}}",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "megabytes" } },
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de CPU (%)",
+      "targets": [
+        {
+          "expr": "process_cpu_usage{job=\"spring-boot\", application=\"gestor-app\"} * 100\n",
+          "legendFormat": "CPU %",
+          "refId": "D"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percent" } },
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Threads activos JVM",
+      "targets": [
+        {
+          "expr": "jvm_threads_live_threads{job=\"spring-boot\"}",
+          "legendFormat": "Threads",
+          "refId": "E"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Errores HTTP",
+      "targets": [
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\\\"spring-boot\\\", status=~\\\"4..\\\"}[1m]))",
+          "legendFormat": "Errores 4xx",
+          "refId": "H"
+        },
+        {
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\\\"spring-boot\\\", status=~\\\"5..\\\"}[1m]))",
+          "legendFormat": "Errores 5xx",
+          "refId": "I"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 26, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tiempo promedio por endpoint (ms)",
+      "targets": [
+        {
+          "expr": "rate(http_server_requests_seconds_sum{job=\"spring-boot\"}[1m]) / rate(http_server_requests_seconds_count{job=\"spring-boot\"}[1m]) * 1000",
+          "legendFormat": "{{method}} {{uri}}",
+          "refId": "J"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "milliseconds" } },
+      "gridPos": { "x": 12, "y": 26, "w": 12, "h": 8 }
+    },
+    {
+      "type": "logs",
+      "title": "Logs de la aplicación (Loki)",
+      "targets": [
+        {
+          "expr": "{service=\"gestor-app\"}",
+          "refId": "G"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 10 },
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(job)",
+        "refresh": 1
+      }
+    ]
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  }
+}

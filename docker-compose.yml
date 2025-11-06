@@ -1,4 +1,8 @@
+version: "3.9"
+
 services:
+
+  # MySQL
   gestor-db:
     image: mysql:8.0.33
     container_name: gestor-db
@@ -14,7 +18,10 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 10s
       retries: 5
-  
+    networks:
+      - monitor-net
+
+  # Backend Spring Boot
   gestor-app:
     build: .
     container_name: gestor-app
@@ -27,6 +34,73 @@ services:
       gestor-db:
         condition: service_healthy
     restart: always
-    
+    networks:
+      - monitor-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Prometheus(metrics)
+  prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      volumes:
+        - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      ports:
+        - "9090:9090"
+      networks:
+        - monitor-net
+      depends_on:
+        - gestor-app
+
+  # Loki
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "3100:3100"
+    networks:
+      - monitor-net
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/config.yml
+
+  # Promtail (log collector)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - monitor-net
+    depends_on:
+      - loki
+
+  # Grafana (dashboard)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - monitor-net
+    depends_on:
+      - prometheus
+      - loki
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-clock-panel
+
+networks:
+  monitor-net:
+    driver: bridge
+
 volumes:
   gestor-data:
