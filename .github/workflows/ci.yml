@@ -1,0 +1,63 @@
+name: CI - Spring Boot + MySQL - Docker
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    name: Build y pruebas con MySQL
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar JAVA
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Compilar y correr test
+        run: mvn clean verify
+
+      - name: Levantar DockerCompose
+        run: |
+          docker compose up -d
+          echo "Esperando a MySQL y la app"
+          sleep 25
+          docker ps
+
+      - name: Verificar que la app se levanto correctamente
+        run: |
+          docker ps | grep gestor-app || (echo "La app no se levanto correctamente" && exit 1)
+          echo "La aplicación está en ejecución en el entorno CI"
+      
+      - name: Probar respuesta HTTP
+        run: |
+          sudo apt-get install -y curl
+          curl --fail http://localhost:8080 || (echo "La app no respondío correctamente" && exit 1)
+
+      - name: Guardar logs si hay error
+        if: failure()
+        run: |
+          mkdir -p logs
+          docker compose logs > logs/compose_logs.txt
+        continue-on-error: true
+
+      - name: Guardar reportes de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            logs/
+      
+      - name: Limpiar entorno
+        if: always()
+        run: docker compose down -v
