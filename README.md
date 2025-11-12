@@ -66,11 +66,11 @@ automaticamente pruebas y validaciones cada vez que se hace un **push o pull req
 ### 🚀 Pipeline de CI
 
 El flujo de CI realiza los siguientes pasos:
-- Compila el proyecto con Maven (`mvn clean verify`)
-- Ejecuta todas las pruebas unitarias e integrales
-- Levanta temporalmente el entorno definido en `docker-compose.yml` (MySQL, backend y monitoreo)
-- Verifica que la aplicación esté corriendo correctamente en el puerto `8080`
-- Sube los reportes y logs generados como artefactos en GitHub
+- Configura el entorno de ejecución con **JDK 17**
+- Compila el proyecto con **Maven** (`mvn clean verify`)
+- Ejecuta todas las pruebas unitarias e integrales usando **Spring Boot** y una base de datos **H2 en memoria**
+- Genera los reportes de **JaCoCo** y **Surefire**
+  - Sube los reportes y logs generados como artefactos en GitHub
 
 📁 **Archivo del pipeline:**
 .github/workflows/ci.yml
@@ -80,7 +80,6 @@ El flujo de CI realiza los siguientes pasos:
 ![Build Status](https://github.com/JoseLuis-DM/Gestor-Tareas/actions/workflows/ci.yml/badge.svg)
 
 > Cada vez que se hace un cambio en la rama `main`, este badge se actualizará automáticamente mostrando si el último build fue exitoso (`✅`) o fallido (`❌`).
-
 
 ---
 
