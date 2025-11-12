@@ -2,8 +2,9 @@ name: CI - Build & Test (Spring Boot + MySQL)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
 
 jobs:
   build-test:
@@ -18,7 +19,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
@@ -27,34 +28,19 @@ jobs:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
+      - name: Crear archivo variables.env temporal
+        run: |
+          echo "SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/gestorbd" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_USERNAME=root" >> $GITHUB_ENV
+          echo "SPRING_DATASOURCE_PASSWORD=root" >> $GITHUB_ENV
+          echo "SPRING_PROFILES_ACTIVE=test" >> $GITHUB_ENV
+
       - name: Configurar JAVA
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: maven
 
-      - name: Crear archivo variables.env temporal
-        run: |
-          echo "SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/gestorbd" >> $GITHUB_ENV
-          echo "SPRING_DATASOURCE_USERNAME=root" >> $GITHUB_ENV
-          echo "SPRING_DATASOURCE_PASSWORD=root" >> $GITHUB_ENV
-
-      - name: Esperar a que MySQL arranque
-        run: |
-          echo "Esperando a que MySQL esté listo..."
-          for i in {1..20}; do
-            if mysqladmin ping -h127.0.0.1 -uroot -proot --silent; then
-              echo "MySQL está listo"
-              break
-            fi
-            sleep 3
-          done
-
-      - name: Ejecutar pruebas Maven
+      - name: Compilar y ejecutar pruebas (con JaCoCo)
         run: mvn clean verify -Dspring.profiles.active=test
-
-      - name: Subir reportes de prueba
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: target/surefire-reports/
