@@ -24,12 +24,13 @@ jobs:
       - name: Compilar y correr test
         run: mvn clean verify
 
-      - name: Levantar DockerCompose
-        run: |
-          docker compose up -d
-          echo "Esperando a MySQL y la app"
-          sleep 25
-          docker ps
+      - name: Levantar Docker Compose
+        run: docker compose up -d
+        env:
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
       - name: Verificar que la app se levanto correctamente
         run: |
