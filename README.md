@@ -58,6 +58,32 @@ Puedes abrirlo en tu navegador para ver visualmente qué clases y que métodos e
 
 ---
 
+## ⚙️ Integración Continua (CI) con GitHub Actions
+
+Este proyecto cuenta con **Integración Continua (CI)** configurada mediante **GitHub Actions**, lo que permite ejecutar 
+automaticamente pruebas y validaciones cada vez que se hace un **push o pull request** a la rama `main`. 
+
+### 🚀 Pipeline de CI
+
+El flujo de CI realiza los siguientes pasos:
+- Compila el proyecto con Maven (`mvn clean verify`)
+- Ejecuta todas las pruebas unitarias e integrales
+- Levanta temporalmente el entorno definido en `docker-compose.yml` (MySQL, backend y monitoreo)
+- Verifica que la aplicación esté corriendo correctamente en el puerto `8080`
+- Sube los reportes y logs generados como artefactos en GitHub
+
+📁 **Archivo del pipeline:**
+.github/workflows/ci.yml
+
+### 📊 Estado del build
+
+![Build Status](https://github.com/JoseLuis-DM/Gestor-Tareas/actions/workflows/ci.yml/badge.svg)
+
+> Cada vez que se hace un cambio en la rama `main`, este badge se actualizará automáticamente mostrando si el último build fue exitoso (`✅`) o fallido (`❌`).
+
+
+---
+
 ## 📂 Estructura del Proyecto
 
 ```
