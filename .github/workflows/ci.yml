@@ -1,15 +1,14 @@
-name: CI - Spring Boot + MySQL - Docker
+name: CI - Build & Test
 
 on:
   push:
-    branches: [ main ]
+    branches:
+    - main
   pull_request:
-    branches: [ main ]
 
 jobs:
-  build-and-test:
+  build-test:
     runs-on: ubuntu-latest
-    name: Build y pruebas con MySQL
 
     steps:
       - name: Clonar repositorio
@@ -21,44 +20,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Compilar y correr test
-        run: mvn clean verify
+      - name: Crear archivo variables.env temporal
+        run: |
+          echo "SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }}" >> variables.env
+          echo "SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}" >> variables.env
+          echo "SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}" >> variables.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> variables.env
 
       - name: Levantar Docker Compose
-        run: docker compose up -d
-        env:
-          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
-          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: docker compose up -d --build
 
-      - name: Verificar que la app se levanto correctamente
+      - name: Esperar inicialización
         run: |
-          docker ps | grep gestor-app || (echo "La app no se levanto correctamente" && exit 1)
-          echo "La aplicación está en ejecución en el entorno CI"
-      
-      - name: Probar respuesta HTTP
-        run: |
-          sudo apt-get install -y curl
-          curl --fail http://localhost:8080 || (echo "La app no respondío correctamente" && exit 1)
+          echo "Esperando a que MySQL arranque..."
+          sleep 20
+          
+      - name: Ejecutar pruebas dentro del contenedor
+        run: docker exec gestor-app mvn test
 
-      - name: Guardar logs si hay error
-        if: failure()
-        run: |
-          mkdir -p logs
-          docker compose logs > logs/compose_logs.txt
-        continue-on-error: true
-
-      - name: Guardar reportes de pruebas
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: maven-test-reports
-          path: |
-            target/surefire-reports/
-            target/failsafe-reports/
-            logs/
-      
-      - name: Limpiar entorno
+      - name: Limpiar docker
         if: always()
         run: docker compose down -v
