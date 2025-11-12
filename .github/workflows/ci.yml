@@ -1,4 +1,4 @@
-name: CI - Build & Test
+name: CI - Spring Boot H2 Tests
 
 on:
   push:
@@ -9,20 +9,6 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: testbd
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - name: Checkout repository
@@ -37,24 +23,11 @@ jobs:
 
       - name: Definir variables de entorno para pruebas
         run: |
-          echo "SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/testdb" >> $GITHUB_ENV
-          echo "SPRING_DATASOURCE_USERNAME=root" >> $GITHUB_ENV
-          echo "SPRING_DATASOURCE_PASSWORD=root" >> $GITHUB_ENV
-          echo "JWT_SECRET=secret_test_key" >> $GITHUB_ENV
+          echo "SPRING_PROFILES_ACTIVE=test" >> $GITHUB_ENV
+          echo "JWT_SECRET=testsecretkey123456789012345678901234567890" >> $GITHUB_ENV
+          echo "JWT_EXPIRATION=3600000" >> $GITHUB_ENV
 
-      - name: Esperar a que MySQL esté listo
-        run: |
-          echo "Esperando que MySQL esté saludable..."
-          for i in {1..15}; do
-            if mysqladmin ping -h 127.0.0.1 --silent; then
-              echo "MySQL está listo!"
-              break
-            fi
-            echo "Esperando MySQL ($i/15)..."
-            sleep 5
-          done
-
-      - name: Ejecutar pruebas Maven (JaCoCo + JUnit)
+      - name: Ejecutar pruebas Maven (JaCoCo)
         run: mvn clean verify -Dspring.profiles.active=test
 
       - name: Publicar reportes de prueba
