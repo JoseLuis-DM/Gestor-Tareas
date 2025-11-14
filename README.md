@@ -1,43 +1,43 @@
-# 📝 Gestor de Tareas - Spring Boot 3
+# Gestor de Tareas
 
 Este proyecto es un **Gestor de Tareas** desarrollado con **Spring Boot 3**, **Spring Security** y **JWT**, que permite a los usuarios autenticarse y gestionar sus tareas de manera segura.  
 Además, incluye **monitorización completa** mediante **Prometheus**, **Grafana**, **Loki** y **Promtail**, lo que facilita la observación de métricas y logs en tiempo real.
 
 ---
 
-## 🚀 Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
-### 🖥️ Backend
-- 🟢 **Java 17**
-- 🟢 **Spring Boot 3**
-- 🟢 **Spring Security con JWT**
-- 🟢 **Spring Data JPA**
-- 🟢 **MySQL**
-- 🟢 **Maven**
-- 🧪 **JUnit y Mockito** (pruebas unitarias e integrales)
-- 📊 **JaCoCo** (cobertura de pruebas)
+###  Backend
+-  **Java 17**
+-  **Spring Boot 3**
+-  **Spring Security con JWT**
+-  **Spring Data JPA**
+-  **MySQL**
+-  **Maven**
+-  **JUnit y Mockito** (pruebas unitarias e integrales)
+-  **JaCoCo** (cobertura de pruebas)
 
-### 🐳 Contenerización y Observabilidad
-- 🐋 **Docker & Docker Compose**
-- 📊 **Prometheus** (métricas)
-- 📉 **Grafana** (dashboards)
-- 📜 **Loki + Promtail** (recolección y visualización de logs)
-
----
-
-## 📌 Funcionalidades
-✅ Registro de usuarios  
-✅ Login con autenticación JWT  
-✅ CRUD de tareas (crear, leer, actualizar, eliminar)  
-✅ Roles de usuario (`USER`, `ADMIN`)  
-✅ Seguridad en endpoints (solo usuarios autenticados pueden gestionar tareas)  
-✅ Documentación de API con **Swagger**
-✅ Manejo centralizado de excepciones  
-✅ Monitoreo de métricas y logs con Grafana
+###  Contenerización y Observabilidad
+-  **Docker & Docker Compose**
+-  **Prometheus** (métricas)
+-  **Grafana** (dashboards)
+-  **Loki + Promtail** (recolección y visualización de logs)
 
 ---
 
-## 🧪 Pruebas y Calidad de Código
+##  Funcionalidades
+ Registro de usuarios  
+ Login con autenticación JWT  
+ CRUD de tareas (crear, leer, actualizar, eliminar)  
+ Roles de usuario (`USER`, `ADMIN`)  
+ Seguridad en endpoints (solo usuarios autenticados pueden gestionar tareas)  
+ Documentación de API con **Swagger**
+ Manejo centralizado de excepciones  
+ Monitoreo de métricas y logs con Grafana
+
+---
+
+## Pruebas y Calidad de Código
 
 <details>
 <summary>Ver detalles de pruebas</summary>
@@ -58,12 +58,12 @@ Puedes abrirlo en tu navegador para ver visualmente qué clases y que métodos e
 
 ---
 
-## ⚙️ Integración Continua (CI) con GitHub Actions
+## ️ Integración Continua (CI) con GitHub Actions
 
 Este proyecto cuenta con **Integración Continua (CI)** configurada mediante **GitHub Actions**, lo que permite ejecutar 
 automaticamente pruebas y validaciones cada vez que se hace un **push o pull request** a la rama `main`. 
 
-### 🚀 Pipeline de CI
+###  Pipeline de CI
 
 El flujo de CI realiza los siguientes pasos:
 - Configura el entorno de ejecución con **JDK 17**
@@ -72,10 +72,10 @@ El flujo de CI realiza los siguientes pasos:
 - Genera los reportes de **JaCoCo** y **Surefire**
   - Sube los reportes y logs generados como artefactos en GitHub
 
-📁 **Archivo del pipeline:**
+ **Archivo del pipeline:**
 .github/workflows/ci.yml
 
-### 📊 Estado del build
+###  Estado del build
 
 ![Build Status](https://github.com/JoseLuis-DM/Gestor-Tareas/actions/workflows/ci.yml/badge.svg)
 
@@ -83,7 +83,7 @@ El flujo de CI realiza los siguientes pasos:
 
 ---
 
-## 📂 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 Gestor-Tareas/
@@ -104,7 +104,7 @@ Gestor-Tareas/
 
 ---
 
-## 🐳 Levantar el Proyecto con Docker
+##  Levantar el Proyecto con Docker
 
 <details>
 <summary>Instrucciones para levantar con Docker</summary>
@@ -127,7 +127,7 @@ SPRING_DATASOURCE_PASSWORD=tu_contraseña
 JWT_SECRET=secret_key
 ```
 
-> ⚠️ **No subir `variables.env` al repositorio**, es privado.
+>  **No subir `variables.env` al repositorio**, es privado.
 
 4. Levantar los contenedores:
 
@@ -151,18 +151,18 @@ docker compose down
 
 ---
 
-## 📊 Monitoreo con Grafana, Prometheus y Loki
+##  Monitoreo con Grafana, Prometheus y Loki
 
 El proyecto incluye un entorno completo de **monitorización y logging** en tiempo real con **Grafana**, **Prometheus** y **Loki**.
 
-### 🔧 Servicios incluidos en `docker-compose.yml`
+###  Servicios incluidos en `docker-compose.yml`
 
 - **Prometheus** → Recolecta métricas desde `/actuator/prometheus`
 - **Loki** → Almacena los logs de la aplicación
 - **Promtail** → Envía los logs de Docker a Loki
 - **Grafana** → Visualiza métricas y logs en un dashboard preconfigurado
 
-### 📈 Dashboard incluido
+###  Dashboard incluido
 
 El dashboard **“Spring Boot - Gestor de Tareas”** ya está configurado y disponible dentro de Grafana.  
 Este muestra automáticamente:
@@ -175,7 +175,7 @@ Este muestra automáticamente:
 -  **Errores HTTP (4xx y 5xx)**
 -  **Logs de la aplicación (Loki)**
 
-📍 **Acceso a Grafana**
+ **Acceso a Grafana**
 
 - URL: [http://localhost:3000](http://localhost:3000)
 - Usuario: `admin`
@@ -185,7 +185,7 @@ El dashboard se actualiza cada **10 segundos** y utiliza **Prometheus** para las
 
 ---
 
-## 📝 Notas
+##  Notas
 
 - Asegúrate de que **Docker** y **Docker Compose** estén instalados en tu máquina.
 - Las variables sensibles se deben mantener en **variables.env** y **nunca se deben subir** al repositorio.
